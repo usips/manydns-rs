@@ -23,6 +23,7 @@ default = ["default-tls"]
 
 dnspod = ["serde", "dep:reqwest", "serde_json"]
 hetzner = ["serde", "dep:reqwest"]
+technitium-dns = ["serde", "dep:reqwest", "serde_json"]
 
 default-tls = ["reqwest?/default-tls"]
 rustls-tls = ["reqwest?/rustls"]

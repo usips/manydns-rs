@@ -39,6 +39,9 @@ pub mod dnspod;
 #[cfg(feature = "hetzner")]
 pub mod hetzner;
 
+#[cfg(feature = "technitium-dns")]
+pub mod technitium;
+
 /// Represents a DNS zone provider.
 ///
 /// Providers implement [`Zone`] management, which in turn implement [`Record`] management.
