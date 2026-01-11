@@ -402,9 +402,18 @@ impl CreateRecord for DnspodZone {
                 DnspodError::Request(_) => CreateRecordError::Custom(err),
             })?;
 
+        // Get the record from response (should always be present if status was successful)
+        let record_data = response.record.ok_or_else(|| {
+            CreateRecordError::Custom(DnspodError::Api(api::Status {
+                code: "0".to_string(),
+                message: "API returned success but no record data".to_string(),
+                created_at: None,
+            }))
+        })?;
+
         // Return a generic record with the created ID
         Ok(Record {
-            id: response.record.id,
+            id: record_data.id,
             host: host.to_string(),
             data: data.clone(),
             ttl,

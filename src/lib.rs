@@ -242,7 +242,7 @@ impl RecordData {
     pub fn get_type(&self) -> &str {
         match self {
             RecordData::A(_) => "A",
-            RecordData::AAAA(_) => "A",
+            RecordData::AAAA(_) => "AAAA",
             RecordData::CNAME(_) => "CNAME",
             RecordData::MX { .. } => "MX",
             RecordData::NS(_) => "NS",

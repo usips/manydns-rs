@@ -8,6 +8,68 @@ use serde::{Deserialize, Serialize};
 
 const DNSPOD_API_URL: &str = "https://api.dnspod.com";
 
+/// Helper module for deserializing fields that can be either strings or integers.
+/// DNSPod API inconsistently returns some IDs as strings and others as integers.
+mod string_or_int {
+    use serde::{self, Deserialize, Deserializer};
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<String, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum StringOrInt {
+            String(String),
+            Int(i64),
+        }
+
+        match StringOrInt::deserialize(deserializer)? {
+            StringOrInt::String(s) => Ok(s),
+            StringOrInt::Int(i) => Ok(i.to_string()),
+        }
+    }
+
+    pub fn deserialize_option<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum StringOrInt {
+            String(String),
+            Int(i64),
+            Null,
+        }
+
+        match StringOrInt::deserialize(deserializer)? {
+            StringOrInt::String(s) => Ok(Some(s)),
+            StringOrInt::Int(i) => Ok(Some(i.to_string())),
+            StringOrInt::Null => Ok(None),
+        }
+    }
+}
+
+/// URL-encodes a string for use in application/x-www-form-urlencoded bodies.
+/// This is necessary for values containing special characters like colons in IPv6 addresses.
+fn url_encode(s: &str) -> String {
+    let mut encoded = String::with_capacity(s.len() * 3);
+    for byte in s.bytes() {
+        match byte {
+            // Unreserved characters (RFC 3986)
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                encoded.push(byte as char);
+            }
+            // Everything else gets percent-encoded
+            _ => {
+                encoded.push('%');
+                encoded.push_str(&format!("{:02X}", byte));
+            }
+        }
+    }
+    encoded
+}
+
 /// Configuration for the DNSPod API client.
 ///
 /// DNSPod requires a properly formatted User-Agent header that identifies
@@ -68,7 +130,9 @@ impl Client {
     ///
     /// # Arguments
     ///
-    /// * `login_token` - The DNSPod API token in format `{SecretID},{SecretKey}`
+    /// * `login_token` - The DNSPod API token in format `{TokenID},{Token}`.
+    ///   Generate tokens at: <https://console.dnspod.com/account/token>
+    ///   Note: These are DNSPod tokens, NOT Tencent Cloud API keys.
     /// * `config` - Client configuration including User-Agent details
     ///
     /// # User-Agent Requirement
@@ -102,7 +166,7 @@ impl Client {
     fn build_form_params(&self, params: &[(&str, &str)]) -> String {
         let mut form = format!("login_token={}&format=json", self.login_token);
         for (key, value) in params {
-            form.push_str(&format!("&{}={}", key, value));
+            form.push_str(&format!("&{}={}", key, url_encode(value)));
         }
         form
     }
@@ -326,7 +390,7 @@ impl Client {
 
         let form = params.iter().fold(
             format!("login_token={}&format=json", self.login_token),
-            |acc, (k, v)| format!("{}&{}={}", acc, k, v),
+            |acc, (k, v)| format!("{}&{}={}", acc, k, url_encode(v)),
         );
 
         let response = self
@@ -375,7 +439,7 @@ impl Client {
 
         let form = params.iter().fold(
             format!("login_token={}&format=json", self.login_token),
-            |acc, (k, v)| format!("{}&{}={}", acc, k, v),
+            |acc, (k, v)| format!("{}&{}={}", acc, k, url_encode(&v)),
         );
 
         let response = self
@@ -495,6 +559,7 @@ pub struct StatusResponse {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Domain {
+    #[serde(deserialize_with = "string_or_int::deserialize")]
     pub id: String,
     pub name: String,
     #[serde(default)]
@@ -507,9 +572,9 @@ pub struct Domain {
     pub status: Option<String>,
     #[serde(default)]
     pub ext_status: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub records: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub group_id: Option<String>,
     #[serde(default)]
     pub is_mark: Option<String>,
@@ -525,11 +590,11 @@ pub struct Domain {
     pub created_on: Option<String>,
     #[serde(default)]
     pub updated_on: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub ttl: Option<String>,
     #[serde(default)]
     pub owner: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub user_id: Option<String>,
 }
 
@@ -592,18 +657,19 @@ pub struct DomainCreateResponse {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Record {
+    #[serde(deserialize_with = "string_or_int::deserialize")]
     pub id: String,
     pub name: String,
     #[serde(default)]
     pub line: Option<String>,
     #[serde(rename = "type", default)]
     pub record_type: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub ttl: Option<String>,
     pub value: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub mx: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub enabled: Option<String>,
     #[serde(default)]
     pub status: Option<String>,
@@ -632,16 +698,17 @@ impl Record {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RecordInfo {
+    #[serde(deserialize_with = "string_or_int::deserialize")]
     pub id: String,
     pub sub_domain: String,
     pub record_type: String,
     pub record_line: String,
     pub value: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub mx: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub ttl: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub enabled: Option<String>,
     #[serde(default)]
     pub monitor_status: Option<String>,
@@ -649,7 +716,7 @@ pub struct RecordInfo {
     pub remark: Option<String>,
     #[serde(default)]
     pub updated_on: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub domain_id: Option<String>,
 }
 
@@ -664,14 +731,15 @@ impl RecordInfo {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RecordListInfo {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub sub_domains: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "string_or_int::deserialize_option")]
     pub record_total: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RecordListDomain {
+    #[serde(deserialize_with = "string_or_int::deserialize")]
     pub id: String,
     pub name: String,
     #[serde(default)]
@@ -695,6 +763,7 @@ pub struct RecordListResponse {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RecordInfoDomain {
+    #[serde(deserialize_with = "string_or_int::deserialize")]
     pub id: String,
     pub domain: String,
     #[serde(default)]
@@ -710,6 +779,7 @@ pub struct RecordInfoResponse {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RecordCreateRecord {
+    #[serde(deserialize_with = "string_or_int::deserialize")]
     pub id: String,
     pub name: String,
     #[serde(default)]
@@ -719,12 +789,14 @@ pub struct RecordCreateRecord {
 #[derive(Debug, Clone, Deserialize)]
 pub struct RecordCreateResponse {
     pub status: Status,
-    pub record: RecordCreateRecord,
+    #[serde(default)]
+    pub record: Option<RecordCreateRecord>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RecordModifyRecord {
-    pub id: serde_json::Value, // Can be string or number
+    #[serde(deserialize_with = "string_or_int::deserialize")]
+    pub id: String,
     pub name: String,
     #[serde(default)]
     pub value: Option<String>,
@@ -740,7 +812,8 @@ pub struct RecordModifyResponse {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RecordStatusRecord {
-    pub id: serde_json::Value, // Can be string or number
+    #[serde(deserialize_with = "string_or_int::deserialize")]
+    pub id: String,
     pub name: String,
     #[serde(default)]
     pub status: Option<String>,
