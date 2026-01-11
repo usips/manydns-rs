@@ -365,6 +365,87 @@ async fn test_txt_record_crud() {
 }
 
 // =============================================================================
+// NS Record Tests
+// =============================================================================
+
+/// Test creating and deleting NS records.
+#[tokio::test]
+#[ignore = "requires TENCENT credentials and TENCENT_TEST_DOMAIN in .env"]
+async fn test_ns_record_crud() {
+    let config = get_test_config().expect("Test configuration not found");
+    let zone = get_test_zone(&config).await;
+    let host = config.test_host("ns");
+
+    println!("Testing NS record CRUD for {}.{}", host, config.domain);
+
+    cleanup_test_records(&zone, &host).await;
+
+    // Create NS record (delegating subdomain to another nameserver)
+    let ns_server = "ns1.example.com";
+    let data = RecordData::NS(ns_server.to_string());
+
+    println!("  Creating NS record: {} -> {}", host, ns_server);
+    let created = zone
+        .create_record(&host, &data, 600)
+        .await
+        .expect("Failed to create NS record");
+
+    assert_eq!(created.host, host);
+    println!("  Created with ID: {}", created.id);
+
+    // Delete it
+    zone.delete_record(&created.id)
+        .await
+        .expect("Failed to delete NS record");
+    println!("  Deleted record");
+}
+
+// =============================================================================
+// SRV Record Tests
+// =============================================================================
+
+/// Test creating and deleting SRV records.
+#[tokio::test]
+#[ignore = "requires TENCENT credentials and TENCENT_TEST_DOMAIN in .env"]
+async fn test_srv_record_crud() {
+    let config = get_test_config().expect("Test configuration not found");
+    let zone = get_test_zone(&config).await;
+    // SRV records have special naming: _service._proto.name
+    let host = format!("_test._tcp.{}", config.subdomain);
+
+    println!("Testing SRV record CRUD for {}.{}", host, config.domain);
+
+    cleanup_test_records(&zone, &host).await;
+
+    // Create SRV record
+    let target = format!("server.{}", config.domain);
+    let data = RecordData::SRV {
+        priority: 10,
+        weight: 5,
+        port: 8080,
+        target: target.clone(),
+    };
+
+    println!(
+        "  Creating SRV record: {} -> {} (pri=10, weight=5, port=8080)",
+        host, target
+    );
+    let created = zone
+        .create_record(&host, &data, 600)
+        .await
+        .expect("Failed to create SRV record");
+
+    assert_eq!(created.host, host);
+    println!("  Created with ID: {}", created.id);
+
+    // Delete it
+    zone.delete_record(&created.id)
+        .await
+        .expect("Failed to delete SRV record");
+    println!("  Deleted record");
+}
+
+// =============================================================================
 // Error Handling Tests
 // =============================================================================
 
