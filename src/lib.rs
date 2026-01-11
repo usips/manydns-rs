@@ -38,6 +38,9 @@ pub mod types;
 #[cfg(feature = "dnspod")]
 pub mod dnspod;
 
+#[cfg(feature = "tencent")]
+pub mod tencent;
+
 #[cfg(feature = "hetzner")]
 pub mod hetzner;
 
