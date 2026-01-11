@@ -37,6 +37,51 @@ pub const MAX_DOMAIN_LEN: usize = 255;
 /// Maximum TTL value per RFC 2181 §8: 2^31 - 1 seconds.
 pub const MAX_TTL: u32 = 2_147_483_647;
 
+/// API environment for providers that support sandbox/production modes.
+///
+/// Some DNS providers offer a sandbox environment for testing API integrations
+/// without affecting production domains. This enum provides a standardized way
+/// to specify the target environment.
+///
+/// # Example
+///
+/// ```
+/// use libdns::types::Environment;
+///
+/// let env = Environment::Sandbox;
+/// assert!(!env.is_production());
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum Environment {
+    /// Production environment - changes affect real domains.
+    #[default]
+    Production,
+    /// Sandbox/testing environment - safe for development and testing.
+    Sandbox,
+}
+
+impl Environment {
+    /// Returns `true` if this is the production environment.
+    pub fn is_production(&self) -> bool {
+        matches!(self, Environment::Production)
+    }
+
+    /// Returns `true` if this is the sandbox environment.
+    pub fn is_sandbox(&self) -> bool {
+        matches!(self, Environment::Sandbox)
+    }
+}
+
+impl fmt::Display for Environment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Environment::Production => write!(f, "production"),
+            Environment::Sandbox => write!(f, "sandbox"),
+        }
+    }
+}
+
 /// A DNS label - a single component of a domain name.
 ///
 /// Labels are limited to 63 octets (RFC 1035 §2.3.4).

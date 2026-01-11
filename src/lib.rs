@@ -50,6 +50,9 @@ pub mod hetzner;
 #[cfg(feature = "technitium-dns")]
 pub mod technitium;
 
+#[cfg(feature = "namecheap")]
+pub mod namecheap;
+
 /// Represents a DNS zone provider.
 ///
 /// Providers implement [`Zone`] management, which in turn implement [`Record`] management.

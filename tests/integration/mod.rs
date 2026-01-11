@@ -22,3 +22,6 @@ mod dnspod;
 
 #[cfg(feature = "tencent")]
 mod tencent;
+
+#[cfg(feature = "namecheap")]
+mod namecheap;
