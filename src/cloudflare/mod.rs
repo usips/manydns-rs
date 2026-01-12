@@ -94,6 +94,24 @@ impl CloudflareProvider {
             api_client: Arc::new(api_client),
         })
     }
+
+    /// Creates a new Cloudflare provider with a custom API base URL.
+    ///
+    /// This is primarily useful for testing with mock servers.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_token` - Cloudflare API token (Bearer token)
+    /// * `base_url` - Custom base URL for the API
+    pub fn with_base_url(
+        api_token: &str,
+        base_url: &str,
+    ) -> Result<Self, Box<dyn StdErr + Send + Sync>> {
+        let api_client = Client::with_base_url(api_token, base_url)?;
+        Ok(Self {
+            api_client: Arc::new(api_client),
+        })
+    }
 }
 
 impl Provider for CloudflareProvider {

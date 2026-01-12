@@ -409,6 +409,7 @@ pub struct DeleteResponse {
 pub struct Client {
     http_client: reqwest::Client,
     api_token: String,
+    base_url: String,
 }
 
 impl Client {
@@ -418,6 +419,21 @@ impl Client {
     ///
     /// * `api_token` - Cloudflare API token (Bearer token)
     pub fn new(api_token: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        Self::with_base_url(api_token, CLOUDFLARE_API_URL)
+    }
+
+    /// Creates a new Cloudflare API client with a custom base URL.
+    ///
+    /// This is primarily useful for testing with mock servers.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_token` - Cloudflare API token (Bearer token)
+    /// * `base_url` - Custom base URL for the API
+    pub fn with_base_url(
+        api_token: &str,
+        base_url: &str,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()?;
@@ -425,6 +441,7 @@ impl Client {
         Ok(Self {
             http_client,
             api_token: api_token.to_string(),
+            base_url: base_url.to_string(),
         })
     }
 
@@ -441,7 +458,7 @@ impl Client {
 
     /// Make a GET request.
     async fn get<T: for<'de> Deserialize<'de>>(&self, path: &str) -> Result<T, CloudflareError> {
-        let url = format!("{}{}", CLOUDFLARE_API_URL, path);
+        let url = format!("{}{}", self.base_url, path);
         let response = self
             .http_client
             .get(&url)
@@ -477,9 +494,9 @@ impl Client {
 
         loop {
             let url = if path.contains('?') {
-                format!("{}{}&page={}&per_page=100", CLOUDFLARE_API_URL, path, page)
+                format!("{}{}&page={}&per_page=100", self.base_url, path, page)
             } else {
-                format!("{}{}?page={}&per_page=100", CLOUDFLARE_API_URL, path, page)
+                format!("{}{}?page={}&per_page=100", self.base_url, path, page)
             };
 
             let response = self
@@ -526,7 +543,7 @@ impl Client {
         path: &str,
         body: &Req,
     ) -> Result<Resp, CloudflareError> {
-        let url = format!("{}{}", CLOUDFLARE_API_URL, path);
+        let url = format!("{}{}", self.base_url, path);
         let response = self
             .http_client
             .post(&url)
@@ -555,7 +572,7 @@ impl Client {
 
     /// Make a DELETE request.
     async fn delete<T: for<'de> Deserialize<'de>>(&self, path: &str) -> Result<T, CloudflareError> {
-        let url = format!("{}{}", CLOUDFLARE_API_URL, path);
+        let url = format!("{}{}", self.base_url, path);
         let response = self
             .http_client
             .delete(&url)

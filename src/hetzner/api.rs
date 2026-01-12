@@ -11,17 +11,25 @@ const HETZNER_API_URL: &str = "https://dns.hetzner.com/api/v1";
 #[derive(Debug, Clone)]
 pub struct Client {
     http_client: HttpClient,
+    base_url: String,
 }
 
 impl Client {
     pub fn new(api_key: &str) -> Result<Self, Box<dyn Error>> {
+        Self::with_base_url(api_key, HETZNER_API_URL)
+    }
+
+    pub fn with_base_url(api_key: &str, base_url: &str) -> Result<Self, Box<dyn Error>> {
         let mut headers = HeaderMap::new();
         let mut auth_value = HeaderValue::from_str(api_key)?;
         auth_value.set_sensitive(true);
         headers.append("Auth-API-Token", auth_value);
 
         let http_client = HttpClient::builder().default_headers(headers).build()?;
-        Ok(Self { http_client })
+        Ok(Self {
+            http_client,
+            base_url: base_url.to_string(),
+        })
     }
 
     pub async fn retrieve_zones(
@@ -32,7 +40,7 @@ impl Client {
         self.http_client
             .get(format!(
                 "{}/zones?page={}&per_page={}",
-                HETZNER_API_URL, page, per_page
+                self.base_url, page, per_page
             ))
             .send()
             .await?
@@ -42,7 +50,7 @@ impl Client {
 
     pub async fn retrieve_zone(&self, zone_id: &str) -> Result<ZoneResponse, reqwest::Error> {
         self.http_client
-            .get(format!("{}/zones/{}", HETZNER_API_URL, zone_id))
+            .get(format!("{}/zones/{}", self.base_url, zone_id))
             .send()
             .await?
             .json()
@@ -54,7 +62,7 @@ impl Client {
         request_body.insert("name", domain);
 
         self.http_client
-            .post(format!("{}/zones", HETZNER_API_URL))
+            .post(format!("{}/zones", self.base_url))
             .json(&request_body)
             .send()
             .await?
@@ -64,7 +72,7 @@ impl Client {
 
     pub async fn delete_zone(&self, zone_id: &str) -> Result<(), reqwest::Error> {
         self.http_client
-            .delete(format!("{}/zones/{}", HETZNER_API_URL, zone_id))
+            .delete(format!("{}/zones/{}", self.base_url, zone_id))
             .send()
             .await
             .map(|_| ())
@@ -79,7 +87,7 @@ impl Client {
         self.http_client
             .get(format!(
                 "{}/records?zone_id={}&page={}&per_page={}",
-                HETZNER_API_URL, zone_id, page, per_page
+                self.base_url, zone_id, page, per_page
             ))
             .send()
             .await?
@@ -89,7 +97,7 @@ impl Client {
 
     pub async fn retrieve_record(&self, record_id: &str) -> Result<RecordResponse, reqwest::Error> {
         self.http_client
-            .get(format!("{}/records/{}", HETZNER_API_URL, record_id))
+            .get(format!("{}/records/{}", self.base_url, record_id))
             .send()
             .await?
             .json()
@@ -116,7 +124,7 @@ impl Client {
         }
 
         self.http_client
-            .post(format!("{}/records", HETZNER_API_URL))
+            .post(format!("{}/records", self.base_url))
             .json(&request_body)
             .send()
             .await?
@@ -126,7 +134,7 @@ impl Client {
 
     pub async fn delete_record(&self, record_id: &str) -> Result<(), reqwest::Error> {
         self.http_client
-            .delete(format!("{}/records/{}", HETZNER_API_URL, record_id))
+            .delete(format!("{}/records/{}", self.base_url, record_id))
             .send()
             .await
             .map(|_| ())

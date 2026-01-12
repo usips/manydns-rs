@@ -1,0 +1,58 @@
+[package]
+name = "libdns-fuzz"
+version = "0.0.0"
+authors = ["Automatically generated"]
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+
+[dependencies.libdns]
+path = ".."
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "fuzz_record_data_from_raw"
+path = "fuzz_targets/fuzz_record_data_from_raw.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_label"
+path = "fuzz_targets/fuzz_label.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_domain_name"
+path = "fuzz_targets/fuzz_domain_name.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_ttl"
+path = "fuzz_targets/fuzz_ttl.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_record_type"
+path = "fuzz_targets/fuzz_record_type.rs"
+test = false
+doc = false
+bench = false

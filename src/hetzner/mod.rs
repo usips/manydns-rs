@@ -33,6 +33,13 @@ impl HetznerProvider {
             api_client: Arc::new(api_client),
         })
     }
+
+    pub fn with_base_url(api_key: &str, base_url: &str) -> Result<Self, Box<dyn StdErr>> {
+        let api_client = api::Client::with_base_url(api_key, base_url)?;
+        Ok(Self {
+            api_client: Arc::new(api_client),
+        })
+    }
 }
 
 impl Provider for HetznerProvider {
