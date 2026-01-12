@@ -69,7 +69,10 @@ pub mod api;
 use std::error::Error as StdErr;
 use std::sync::Arc;
 
-pub use api::{ApiError, Client, ClientConfig, HostRecord, NamecheapError};
+pub use api::{
+    get_element_attr, parse_host_records, ApiError, Client, ClientConfig, HostRecord,
+    NamecheapError,
+};
 
 use crate::{
     CreateRecord, CreateRecordError, DeleteRecord, DeleteRecordError, Provider, Record, RecordData,
@@ -131,7 +134,9 @@ impl NamecheapZone {
 ///
 /// For "example.com", returns ("example", "com").
 /// For "sub.example.co.uk", returns ("sub.example", "co.uk") - handles common ccTLDs.
-fn split_domain(domain: &str) -> Option<(String, String)> {
+///
+/// This is useful for working with the Namecheap API which requires separate SLD/TLD parameters.
+pub fn split_domain(domain: &str) -> Option<(String, String)> {
     let domain = domain.trim_end_matches('.');
     let parts: Vec<&str> = domain.split('.').collect();
 
@@ -433,7 +438,9 @@ impl DeleteRecord for NamecheapZone {
 }
 
 /// Converts a Namecheap HostRecord to a libdns Record.
-fn host_record_to_record(hr: HostRecord, domain: &str) -> Record {
+///
+/// This is useful for custom transformations of Namecheap API responses.
+pub fn host_record_to_record(hr: HostRecord, domain: &str) -> Record {
     let host = if hr.name == "@" {
         domain.to_string()
     } else {
@@ -453,85 +460,5 @@ fn host_record_to_record(hr: HostRecord, domain: &str) -> Record {
         host,
         data,
         ttl: hr.ttl,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_split_domain() {
-        assert_eq!(
-            split_domain("example.com"),
-            Some(("example".to_string(), "com".to_string()))
-        );
-        assert_eq!(
-            split_domain("sub.example.com"),
-            Some(("sub.example".to_string(), "com".to_string()))
-        );
-        assert_eq!(
-            split_domain("example.co.uk"),
-            Some(("example".to_string(), "co.uk".to_string()))
-        );
-        assert_eq!(
-            split_domain("sub.example.co.uk"),
-            Some(("sub.example".to_string(), "co.uk".to_string()))
-        );
-        assert_eq!(split_domain("com"), None);
-    }
-
-    #[test]
-    fn test_host_record_to_record() {
-        let hr = HostRecord {
-            host_id: "123".to_string(),
-            name: "www".to_string(),
-            record_type: "A".to_string(),
-            address: "1.2.3.4".to_string(),
-            mx_pref: None,
-            ttl: 3600,
-        };
-
-        let record = host_record_to_record(hr, "example.com");
-        assert_eq!(record.id, "123");
-        assert_eq!(record.host, "www.example.com");
-        assert_eq!(record.data, RecordData::A("1.2.3.4".parse().unwrap()));
-        assert_eq!(record.ttl, 3600);
-    }
-
-    #[test]
-    fn test_host_record_apex() {
-        let hr = HostRecord {
-            host_id: "456".to_string(),
-            name: "@".to_string(),
-            record_type: "A".to_string(),
-            address: "1.2.3.4".to_string(),
-            mx_pref: None,
-            ttl: 1800,
-        };
-
-        let record = host_record_to_record(hr, "example.com");
-        assert_eq!(record.host, "example.com");
-    }
-
-    #[test]
-    fn test_host_record_mx() {
-        let hr = HostRecord {
-            host_id: "789".to_string(),
-            name: "@".to_string(),
-            record_type: "MX".to_string(),
-            address: "mail.example.com".to_string(),
-            mx_pref: Some(10),
-            ttl: 3600,
-        };
-
-        let record = host_record_to_record(hr, "example.com");
-        assert_eq!(
-            record.data,
-            RecordData::MX {
-                priority: 10,
-                mail_server: "mail.example.com".to_string()
-            }
-        );
     }
 }

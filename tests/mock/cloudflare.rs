@@ -2,7 +2,8 @@
 //!
 //! These tests use wiremock to simulate API responses without hitting real APIs.
 
-#![cfg(feature = "cloudflare")]
+use crate::common::cloudflare::*;
+use crate::common::setup_mock_server;
 
 use libdns::cloudflare::CloudflareProvider;
 use libdns::{
@@ -13,135 +14,7 @@ use proptest::prelude::*;
 use serde_json::json;
 use std::net::Ipv4Addr;
 use wiremock::matchers::{header, method, path, path_regex, query_param};
-use wiremock::{Mock, MockServer, ResponseTemplate};
-
-// =============================================================================
-// Constants for testing - using 32-char hex IDs like real Cloudflare
-// =============================================================================
-
-const ZONE_ID_1: &str = "aaaabbbbccccdddd1111222233334444";
-const ZONE_ID_2: &str = "eeeeffffaaaa00001111222233335555";
-const RECORD_ID_1: &str = "11112222333344445555666677778888";
-const RECORD_ID_2: &str = "88887777666655554444333322221111";
-const NEW_RECORD_ID: &str = "99990000aaaabbbbccccddddeeee0000";
-
-// =============================================================================
-// Test Helpers
-// =============================================================================
-
-async fn setup_mock_server() -> MockServer {
-    MockServer::start().await
-}
-
-fn mock_zone_response(id: &str, name: &str) -> serde_json::Value {
-    json!({
-        "success": true,
-        "errors": [],
-        "messages": [],
-        "result": {
-            "id": id,
-            "name": name,
-            "status": "active",
-            "paused": false,
-            "type": "full"
-        }
-    })
-}
-
-fn mock_zones_list_response(zones: Vec<(&str, &str)>) -> serde_json::Value {
-    json!({
-        "success": true,
-        "errors": [],
-        "messages": [],
-        "result": zones.iter().map(|(id, name)| json!({
-            "id": id,
-            "name": name,
-            "status": "active",
-            "paused": false,
-            "type": "full"
-        })).collect::<Vec<_>>(),
-        "result_info": {
-            "page": 1,
-            "per_page": 100,
-            "total_pages": 1,
-            "count": zones.len(),
-            "total_count": zones.len()
-        }
-    })
-}
-
-fn mock_record_response(
-    id: &str,
-    zone_id: &str,
-    zone_name: &str,
-    name: &str,
-    record_type: &str,
-    content: &str,
-    ttl: u32,
-) -> serde_json::Value {
-    json!({
-        "success": true,
-        "errors": [],
-        "messages": [],
-        "result": {
-            "id": id,
-            "zone_id": zone_id,
-            "zone_name": zone_name,
-            "name": name,
-            "type": record_type,
-            "content": content,
-            "proxied": false,
-            "ttl": ttl
-        }
-    })
-}
-
-fn mock_records_list_response(
-    records: Vec<(&str, &str, &str, &str, &str, &str, u32)>,
-) -> serde_json::Value {
-    json!({
-        "success": true,
-        "errors": [],
-        "messages": [],
-        "result": records.iter().map(|(id, zone_id, zone_name, name, record_type, content, ttl)| json!({
-            "id": id,
-            "zone_id": zone_id,
-            "zone_name": zone_name,
-            "name": name,
-            "type": record_type,
-            "content": content,
-            "proxied": false,
-            "ttl": ttl
-        })).collect::<Vec<_>>(),
-        "result_info": {
-            "page": 1,
-            "per_page": 100,
-            "total_pages": 1,
-            "count": records.len(),
-            "total_count": records.len()
-        }
-    })
-}
-
-fn mock_error_response(code: i32, message: &str) -> serde_json::Value {
-    json!({
-        "success": false,
-        "errors": [{"code": code, "message": message}],
-        "messages": [],
-        "result": null
-    })
-}
-
-fn mock_delete_response(id: &str) -> serde_json::Value {
-    json!({
-        "success": true,
-        "errors": [],
-        "messages": [],
-        "result": {
-            "id": id
-        }
-    })
-}
+use wiremock::{Mock, ResponseTemplate};
 
 // =============================================================================
 // Zone Tests

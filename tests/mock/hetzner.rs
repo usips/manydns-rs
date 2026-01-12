@@ -20,7 +20,8 @@
 //! - RRSets: GET/POST/PUT/DELETE `/v1/zones/{zone_id}/rrsets`
 //! - Auth: `Authorization: Bearer <token>` header
 
-#![cfg(feature = "hetzner")]
+use crate::common::hetzner::*;
+use crate::common::setup_mock_server;
 
 use libdns::hetzner::HetznerProvider;
 use libdns::{CreateRecord, CreateZone, DeleteRecord, DeleteZone, Provider, RecordData, Zone};
@@ -28,116 +29,7 @@ use proptest::prelude::*;
 use serde_json::json;
 use std::net::Ipv4Addr;
 use wiremock::matchers::{header, method, path};
-use wiremock::{Mock, MockServer, ResponseTemplate};
-
-// =============================================================================
-// Mock Response Helpers
-// =============================================================================
-
-/// Create a mock zones list response (Cloud API format).
-fn mock_zones_response(zones: Vec<(u64, &str, u64)>) -> serde_json::Value {
-    json!({
-        "meta": {
-            "pagination": {
-                "page": 1,
-                "per_page": 25,
-                "previous_page": null,
-                "next_page": null,
-                "last_page": 1,
-                "total_entries": zones.len()
-            }
-        },
-        "zones": zones.iter().map(|(id, name, ttl)| {
-            json!({
-                "id": id,
-                "name": name,
-                "mode": "primary",
-                "ttl": ttl,
-                "status": "ok",
-                "record_count": 0
-            })
-        }).collect::<Vec<_>>()
-    })
-}
-
-/// Create a mock single zone response.
-fn mock_zone_response(id: u64, name: &str, ttl: u64) -> serde_json::Value {
-    json!({
-        "zone": {
-            "id": id,
-            "name": name,
-            "mode": "primary",
-            "ttl": ttl,
-            "status": "ok",
-            "record_count": 0
-        }
-    })
-}
-
-/// Create a mock RRSets list response with pagination.
-fn mock_rrsets_response(
-    zone_id: u64,
-    rrsets: Vec<(&str, &str, u64, Vec<&str>)>,
-) -> serde_json::Value {
-    let len = rrsets.len();
-    json!({
-        "meta": {
-            "pagination": {
-                "page": 1,
-                "per_page": 100,
-                "last_page": 1,
-                "total_entries": len
-            }
-        },
-        "rrsets": rrsets.iter().map(|(name, record_type, ttl, values)| {
-            json!({
-                "id": format!("{}/{}", name, record_type),
-                "name": name,
-                "type": record_type,
-                "ttl": ttl,
-                "zone": zone_id,
-                "records": values.iter().map(|v| json!({"value": v})).collect::<Vec<_>>()
-            })
-        }).collect::<Vec<_>>()
-    })
-}
-
-/// Create a mock single RRSet response.
-fn mock_rrset_response(
-    zone_id: u64,
-    name: &str,
-    record_type: &str,
-    ttl: u64,
-    values: Vec<&str>,
-) -> serde_json::Value {
-    json!({
-        "rrset": {
-            "id": format!("{}/{}", name, record_type),
-            "name": name,
-            "type": record_type,
-            "ttl": ttl,
-            "zone": zone_id,
-            "records": values.iter().map(|v| json!({"value": v})).collect::<Vec<_>>()
-        }
-    })
-}
-
-/// Create an action response for async operations.
-fn mock_action_response(id: u64, status: &str) -> serde_json::Value {
-    json!({
-        "action": {
-            "id": id,
-            "command": "create_rrset",
-            "status": status,
-            "progress": 100
-        }
-    })
-}
-
-/// Setup a new mock server for testing.
-async fn setup_mock_server() -> MockServer {
-    MockServer::start().await
-}
+use wiremock::{Mock, ResponseTemplate};
 
 // =============================================================================
 // Zone Tests
