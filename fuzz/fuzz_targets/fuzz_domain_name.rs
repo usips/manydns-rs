@@ -5,19 +5,11 @@ use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &str| {
     // Test DomainName creation with arbitrary strings
-    if let Ok(domain) = DomainName::new(data) {
-        // Verify roundtrip
-        let s: &str = domain.as_ref();
-        let _ = DomainName::new(s);
-
-        // Check wire format
-        let wire = domain.to_wire_format();
-        assert!(!wire.is_empty());
-        // Wire format must end with null byte (root label)
-        assert_eq!(wire.last(), Some(&0));
-
-        // Check that labels work
-        let labels = domain.labels();
-        assert!(!labels.is_empty());
+    if let Some(domain) = DomainName::from_dotted(data) {
+        // Verify to_dotted produces a valid string
+        let s = domain.to_dotted();
+        // Re-parsing should succeed
+        let reparsed = DomainName::from_dotted(&s);
+        assert!(reparsed.is_some(), "Re-parsing to_dotted should succeed");
     }
 });

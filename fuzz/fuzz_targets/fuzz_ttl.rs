@@ -6,25 +6,19 @@ use libfuzzer_sys::fuzz_target;
 fuzz_target!(|data: u32| {
     // Test Ttl::try_new with arbitrary values
     match Ttl::try_new(data) {
-        Ok(ttl) => {
+        Some(ttl) => {
             // Valid TTL should be in valid range
-            let val: u32 = ttl.into();
-            assert!(val >= Ttl::MIN.into());
-            assert!(val <= Ttl::MAX.into());
+            let val = ttl.as_secs();
+            assert!(val <= Ttl::MAX.as_secs());
         }
-        Err(_) => {
-            // Invalid value - either too small or too large
-            let min: u32 = Ttl::MIN.into();
-            let max: u32 = Ttl::MAX.into();
-            assert!(data < min || data > max);
+        None => {
+            // Invalid value - too large
+            assert!(data > Ttl::MAX.as_secs());
         }
     }
 
     // Test Ttl::new which clamps
     let ttl = Ttl::new(data);
-    let val: u32 = ttl.into();
-    let min: u32 = Ttl::MIN.into();
-    let max: u32 = Ttl::MAX.into();
-    assert!(val >= min);
-    assert!(val <= max);
+    let val = ttl.as_secs();
+    assert!(val <= Ttl::MAX.as_secs());
 });

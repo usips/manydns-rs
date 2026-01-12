@@ -3,16 +3,20 @@
 use libdns::types::Label;
 use libfuzzer_sys::fuzz_target;
 
-fuzz_target!(|data: &str| {
-    // Test Label creation with arbitrary strings
-    if let Ok(label) = Label::new(data) {
-        // Verify roundtrip
-        let s = label.as_ref();
-        let _ = Label::new(s);
+fuzz_target!(|data: &[u8]| {
+    // Test Label creation with arbitrary bytes
+    if let Some(label) = Label::new(data) {
+        // Verify the bytes roundtrip
+        let bytes = label.as_bytes();
+        assert_eq!(bytes, data);
 
-        // Check that to_bytes works
-        let bytes = label.to_bytes();
-        assert!(!bytes.is_empty());
-        assert!(bytes.len() <= 64); // 1 length byte + max 63 char label
+        // Length should match
+        assert_eq!(label.len(), data.len());
+
+        // Label shouldn't be marked as empty if data is non-empty
+        assert_eq!(label.is_empty(), data.is_empty());
+    } else {
+        // Label creation fails for empty or too-long data
+        assert!(data.is_empty() || data.len() > 63);
     }
 });

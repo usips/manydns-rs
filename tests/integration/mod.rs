@@ -12,6 +12,7 @@
 //!
 //! - `cloudflare`: Cloudflare DNS API (using API token)
 //! - `dnspod`: DNSPod legacy API (using API tokens)
+//! - `hetzner`: Hetzner DNS API (using API token)
 //! - `tencent`: Tencent Cloud DNSPod API (using SecretId/SecretKey)
 
 #[cfg(feature = "cloudflare")]
@@ -19,6 +20,9 @@ mod cloudflare;
 
 #[cfg(feature = "dnspod")]
 mod dnspod;
+
+#[cfg(feature = "hetzner")]
+mod hetzner;
 
 #[cfg(feature = "tencent")]
 mod tencent;

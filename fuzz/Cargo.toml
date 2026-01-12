@@ -56,3 +56,17 @@ path = "fuzz_targets/fuzz_record_type.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "fuzz_hetzner_record_id"
+path = "fuzz_targets/fuzz_hetzner_record_id.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_hetzner_txt_value"
+path = "fuzz_targets/fuzz_hetzner_txt_value.rs"
+test = false
+doc = false
+bench = false

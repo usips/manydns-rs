@@ -1,4 +1,72 @@
-use std::{error::Error as StdErr, sync::Arc};
+//! Hetzner Cloud DNS provider implementation.
+//!
+//! This provider uses the Hetzner Cloud API with Bearer token authentication.
+//!
+//! # Authentication
+//!
+//! Requires a Hetzner Cloud API token:
+//! - Create a token at: <https://console.hetzner.cloud/projects/*/security/tokens>
+//! - The token must have Read & Write permissions for DNS
+//!
+//! # Example
+//!
+//! ```no_run
+//! use libdns::hetzner::HetznerProvider;
+//! use libdns::{Provider, Zone, CreateZone, DeleteZone};
+//!
+//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let provider = HetznerProvider::new("your_api_token")?;
+//!
+//! // List all zones
+//! let zones = provider.list_zones().await?;
+//! for zone in zones {
+//!     println!("Zone: {} (ID: {})", zone.domain(), zone.id());
+//! }
+//!
+//! // Create a new zone
+//! let new_zone = provider.create_zone("example.com").await?;
+//! println!("Created zone: {}", new_zone.domain());
+//!
+//! // Delete a zone
+//! provider.delete_zone(new_zone.id()).await?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Supported Record Types
+//!
+//! - A (IPv4 address)
+//! - AAAA (IPv6 address)
+//! - CNAME (Canonical name)
+//! - MX (Mail exchange)
+//! - NS (Name server)
+//! - TXT (Text record)
+//! - SRV (Service record)
+//! - SOA (Start of authority)
+//! - CAA (Certification Authority Authorization)
+//! - TLSA (TLS Authentication)
+//! - DS (Delegation Signer)
+//! - RP (Responsible Person)
+//! - HINFO (Host Information)
+//! - PTR (Pointer record)
+//! - HTTPS (HTTPS Service Binding)
+//! - SVCB (Service Binding)
+//!
+//! # Zone Management
+//!
+//! Unlike some providers, Hetzner supports creating and deleting zones
+//! through the API. See [`CreateZone`] and [`DeleteZone`] traits.
+//!
+//! # API Reference
+//!
+//! - [Hetzner Cloud API Documentation](https://docs.hetzner.cloud/)
+//! - [DNS Zones](https://docs.hetzner.cloud/reference/cloud#zones)
+//! - [DNS RRSets](https://docs.hetzner.cloud/reference/cloud#zone-rrsets)
+
+pub mod api;
+
+use std::error::Error as StdErr;
+use std::sync::Arc;
 
 use crate::{
     CreateRecord, CreateRecordError, CreateZone, CreateZoneError, DeleteRecord, DeleteRecordError,
@@ -6,13 +74,15 @@ use crate::{
     RetrieveZoneError, Zone,
 };
 
-mod api;
-
-const SUPPORTED_RECORD_TYPES: &[&str; 14] = &[
-    "A", "AAAA", "NS", "MX", "CNAME", "RP", "TXT", "SOA", "HINFO", "SRV", "DANE", "TLSA", "DS",
-    "CAA",
+/// Supported record types for Hetzner Cloud DNS.
+const SUPPORTED_RECORD_TYPES: &[&str; 16] = &[
+    "A", "AAAA", "NS", "MX", "CNAME", "RP", "TXT", "SOA", "HINFO", "SRV", "TLSA", "DS", "CAA",
+    "PTR", "HTTPS", "SVCB",
 ];
 
+/// Hetzner Cloud DNS provider.
+///
+/// Uses the Hetzner Cloud API with Bearer token authentication.
 #[derive(Debug)]
 pub struct HetznerProvider {
     api_client: Arc<api::Client>,
@@ -20,13 +90,26 @@ pub struct HetznerProvider {
 
 impl Clone for HetznerProvider {
     fn clone(&self) -> Self {
-        return HetznerProvider {
-            api_client: Arc::from(self.api_client.as_ref().clone()),
-        };
+        HetznerProvider {
+            api_client: Arc::clone(&self.api_client),
+        }
     }
 }
 
 impl HetznerProvider {
+    /// Creates a new Hetzner Cloud DNS provider.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_key` - Hetzner Cloud API token (Bearer token)
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use libdns::hetzner::HetznerProvider;
+    ///
+    /// let provider = HetznerProvider::new("your_api_token").unwrap();
+    /// ```
     pub fn new(api_key: &str) -> Result<Self, Box<dyn StdErr>> {
         let api_client = api::Client::new(api_key)?;
         Ok(Self {
@@ -34,6 +117,14 @@ impl HetznerProvider {
         })
     }
 
+    /// Creates a new Hetzner Cloud DNS provider with a custom API base URL.
+    ///
+    /// This is primarily useful for testing with mock servers.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_key` - Hetzner Cloud API token
+    /// * `base_url` - Custom base URL for the API
     pub fn with_base_url(api_key: &str, base_url: &str) -> Result<Self, Box<dyn StdErr>> {
         let api_client = api::Client::with_base_url(api_key, base_url)?;
         Ok(Self {
@@ -65,10 +156,10 @@ impl Provider for HetznerProvider {
                 RetrieveZoneError::Custom(err)
             })?;
 
-        Ok(HetznerZone {
-            api_client: self.api_client.clone(),
-            repr: response.zone,
-        })
+        Ok(HetznerZone::from_api(
+            self.api_client.clone(),
+            response.zone,
+        ))
     }
 
     async fn list_zones(
@@ -101,16 +192,11 @@ impl Provider for HetznerProvider {
                         total = Some(response.meta.pagination.total_entries as usize);
                     }
 
-                    zones.append(
+                    zones.extend(
                         response
                             .zones
                             .into_iter()
-                            .map(|zone| HetznerZone {
-                                api_client: self.api_client.clone(),
-                                repr: zone,
-                            })
-                            .collect::<Vec<HetznerZone>>()
-                            .as_mut(),
+                            .map(|zone| HetznerZone::from_api(self.api_client.clone(), zone)),
                     );
                 }
                 Err(err) => {
@@ -139,21 +225,27 @@ impl CreateZone for HetznerProvider {
         &self,
         domain: &str,
     ) -> Result<Self::Zone, CreateZoneError<Self::CustomCreateError>> {
-        let response = self.api_client.create_zone(domain).await.map_err(|err| {
-            if err.is_status() {
-                return match err.status().unwrap() {
-                    reqwest::StatusCode::UNAUTHORIZED => CreateZoneError::Unauthorized,
-                    reqwest::StatusCode::UNPROCESSABLE_ENTITY => CreateZoneError::InvalidDomainName,
-                    _ => CreateZoneError::Custom(err),
-                };
-            }
-            CreateZoneError::Custom(err)
-        })?;
+        let response = self
+            .api_client
+            .create_zone(domain, None)
+            .await
+            .map_err(|err| {
+                if err.is_status() {
+                    return match err.status().unwrap() {
+                        reqwest::StatusCode::UNAUTHORIZED => CreateZoneError::Unauthorized,
+                        reqwest::StatusCode::UNPROCESSABLE_ENTITY => {
+                            CreateZoneError::InvalidDomainName
+                        }
+                        _ => CreateZoneError::Custom(err),
+                    };
+                }
+                CreateZoneError::Custom(err)
+            })?;
 
-        Ok(HetznerZone {
-            api_client: self.api_client.clone(),
-            repr: response.zone,
-        })
+        Ok(HetznerZone::from_api(
+            self.api_client.clone(),
+            response.zone,
+        ))
     }
 }
 
@@ -177,17 +269,79 @@ impl DeleteZone for HetznerProvider {
     }
 }
 
+/// Represents a DNS zone in Hetzner Cloud DNS.
+///
+/// This struct provides methods for managing DNS records within a zone,
+/// including listing, creating, and deleting records.
+///
+/// # Zone Status
+///
+/// Hetzner zones have a status that can be:
+/// - `Ok` - The zone is active and DNS resolution works
+/// - `Pending` - The zone is awaiting setup
+/// - `Failed` - Zone setup failed
+///
+/// # RRSet-based API
+///
+/// The Hetzner Cloud API uses RRSets (Resource Record Sets) instead of
+/// individual records. An RRSet is a group of records with the same name
+/// and type. This implementation handles the conversion between the
+/// libdns record model and Hetzner's RRSet model.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use libdns::hetzner::HetznerProvider;
+/// use libdns::{Provider, Zone, CreateRecord, DeleteRecord, RecordData};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let provider = HetznerProvider::new("your-api-token")?;
+///
+/// // Get an existing zone
+/// let zone = provider.get_zone("example.com").await?;
+/// println!("Zone ID: {}", zone.id());
+/// println!("Domain: {}", zone.domain());
+///
+/// // List all records in the zone
+/// let records = zone.list_records().await?;
+/// for record in &records {
+///     println!("{:?}", record);
+/// }
+///
+/// // Create a new A record
+/// let data = RecordData::A("1.2.3.4".parse()?);
+/// zone.create_record("www", &data, 300).await?;
+///
+/// // Delete a record by ID (format: "name/type/value")
+/// zone.delete_record("www/A/1.2.3.4").await?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone)]
 pub struct HetznerZone {
     api_client: Arc<api::Client>,
     repr: api::Zone,
+    /// Cached zone ID as string for the Zone trait.
+    zone_id_str: String,
+}
+
+impl HetznerZone {
+    /// Creates a new HetznerZone from API response data.
+    fn from_api(api_client: Arc<api::Client>, zone: api::Zone) -> Self {
+        let zone_id_str = zone.id.to_string();
+        Self {
+            api_client,
+            repr: zone,
+            zone_id_str,
+        }
+    }
 }
 
 impl Zone for HetznerZone {
     type CustomRetrieveError = reqwest::Error;
 
     fn id(&self) -> &str {
-        &self.repr.id
+        &self.zone_id_str
     }
 
     fn domain(&self) -> &str {
@@ -204,7 +358,7 @@ impl Zone for HetznerZone {
         loop {
             let result = self
                 .api_client
-                .retrieve_records(&self.repr.id, page, 100)
+                .retrieve_rrsets(&self.zone_id_str, page, 100)
                 .await
                 .map_err(|err| {
                     if err.is_status() {
@@ -225,14 +379,28 @@ impl Zone for HetznerZone {
                         total = Some(response.meta.pagination.total_entries as usize);
                     }
 
-                    records.append(
-                        response
-                            .records
-                            .iter()
-                            .map(|record| Record::from(RecordWithTtl::new(record, self.repr.ttl)))
-                            .collect::<Vec<Record>>()
-                            .as_mut(),
-                    );
+                    let is_last_page =
+                        response.meta.pagination.page >= response.meta.pagination.last_page;
+
+                    // Convert RRSets to individual records
+                    for rrset in &response.rrsets {
+                        let ttl = rrset.ttl.unwrap_or(self.repr.ttl);
+                        for record_value in &rrset.records {
+                            // Create a unique ID: "name/type/value"
+                            let record_id =
+                                format!("{}/{}/{}", rrset.name, rrset.typ, record_value.value);
+                            records.push(Record {
+                                id: record_id,
+                                host: rrset.name.clone(),
+                                data: RecordData::from_raw(&rrset.typ, &record_value.value),
+                                ttl,
+                            });
+                        }
+                    }
+
+                    if is_last_page {
+                        break;
+                    }
                 }
                 Err(err) => {
                     if let RetrieveRecordError::NotFound = err {
@@ -240,10 +408,6 @@ impl Zone for HetznerZone {
                     }
                     return Err(err);
                 }
-            }
-
-            if total.is_some_and(|t| records.len() == t) {
-                break;
             }
 
             page += 1;
@@ -256,9 +420,16 @@ impl Zone for HetznerZone {
         &self,
         record_id: &str,
     ) -> Result<Record, RetrieveRecordError<Self::CustomRetrieveError>> {
+        // Parse record ID format: "name/type/value"
+        let parts: Vec<&str> = record_id.splitn(3, '/').collect();
+        if parts.len() != 3 {
+            return Err(RetrieveRecordError::NotFound);
+        }
+        let (name, typ, value) = (parts[0], parts[1], parts[2]);
+
         let response = self
             .api_client
-            .retrieve_record(record_id)
+            .retrieve_rrset(&self.zone_id_str, name, typ)
             .await
             .map_err(|err| {
                 if err.is_status() {
@@ -271,14 +442,37 @@ impl Zone for HetznerZone {
                 RetrieveRecordError::Custom(err)
             })?;
 
-        if response.record.zone_id != self.repr.id {
-            return Err(RetrieveRecordError::NotFound);
-        }
+        // Find the specific record value in the RRSet
+        let rrset = &response.rrset;
+        let record_value = rrset
+            .records
+            .iter()
+            .find(|r| r.value == value)
+            .ok_or(RetrieveRecordError::NotFound)?;
 
-        Ok(Record::from(RecordWithTtl::new(
-            &response.record,
-            self.repr.ttl,
-        )))
+        Ok(Record {
+            id: record_id.to_string(),
+            host: rrset.name.clone(),
+            data: RecordData::from_raw(&rrset.typ, &record_value.value),
+            ttl: rrset.ttl.unwrap_or(self.repr.ttl),
+        })
+    }
+}
+
+/// Format a record value for the Hetzner Cloud API.
+///
+/// TXT records must be wrapped in double quotes per Hetzner's requirements.
+fn format_value_for_api(data: &RecordData) -> String {
+    match data {
+        RecordData::TXT(val) => {
+            // Hetzner requires TXT values to be double-quoted
+            if val.starts_with('"') && val.ends_with('"') {
+                val.clone()
+            } else {
+                format!("\"{}\"", val)
+            }
+        }
+        _ => data.get_value(),
     }
 }
 
@@ -296,20 +490,19 @@ impl CreateRecord for HetznerZone {
             return Err(CreateRecordError::UnsupportedType);
         }
 
-        let mut opt_ttl = None;
-        if ttl != self.repr.ttl {
-            opt_ttl = Some(ttl);
-        }
+        let value = format_value_for_api(data);
+        let record_value = api::RecordValue::new(&value);
 
-        let response = self
+        let opt_ttl = if ttl != self.repr.ttl {
+            Some(ttl)
+        } else {
+            None
+        };
+
+        // Try to add to existing RRSet first (this creates if it doesn't exist)
+        let _response = self
             .api_client
-            .create_record(
-                &self.repr.id,
-                host,
-                data.get_type(),
-                data.get_value().as_str(),
-                opt_ttl,
-            )
+            .add_records_to_rrset(&self.zone_id_str, host, typ, vec![record_value], opt_ttl)
             .await
             .map_err(|err| {
                 if err.is_status() {
@@ -324,10 +517,15 @@ impl CreateRecord for HetznerZone {
                 CreateRecordError::Custom(err)
             })?;
 
-        Ok(Record::from(RecordWithTtl::new(
-            &response.record,
-            self.repr.ttl,
-        )))
+        // Create the record ID in our format (use API value for consistency)
+        let record_id = format!("{}/{}/{}", host, typ, value);
+
+        Ok(Record {
+            id: record_id,
+            host: host.to_string(),
+            data: data.clone(),
+            ttl,
+        })
     }
 }
 
@@ -338,14 +536,18 @@ impl DeleteRecord for HetznerZone {
         &self,
         record_id: &str,
     ) -> Result<(), DeleteRecordError<Self::CustomDeleteError>> {
-        self.get_record(record_id).await.map_err(|err| match err {
-            RetrieveRecordError::Unauthorized => DeleteRecordError::Unauthorized,
-            RetrieveRecordError::NotFound => DeleteRecordError::NotFound,
-            RetrieveRecordError::Custom(rerr) => DeleteRecordError::Custom(rerr),
-        })?;
+        // Parse record ID format: "name/type/value"
+        let parts: Vec<&str> = record_id.splitn(3, '/').collect();
+        if parts.len() != 3 {
+            return Err(DeleteRecordError::NotFound);
+        }
+        let (name, typ, value) = (parts[0], parts[1], parts[2]);
+
+        // Remove this specific record from the RRSet
+        let record_value = api::RecordValue::new(value);
 
         self.api_client
-            .delete_record(record_id)
+            .remove_records_from_rrset(&self.zone_id_str, name, typ, vec![record_value])
             .await
             .map_err(|err| {
                 if err.is_status() {
@@ -356,40 +558,8 @@ impl DeleteRecord for HetznerZone {
                     };
                 }
                 DeleteRecordError::Custom(err)
-            })
-    }
-}
+            })?;
 
-/// A Hetzner record with its associated default TTL for conversion.
-///
-/// This wrapper is used to implement `From` for converting Hetzner
-/// [`api::Record`] types to generic [`Record`] types, since the
-/// default TTL is needed when the record doesn't specify one.
-pub struct RecordWithTtl<'a> {
-    /// The Hetzner record.
-    pub record: &'a api::Record,
-    /// The default TTL from the zone.
-    pub default_ttl: u64,
-}
-
-impl<'a> RecordWithTtl<'a> {
-    /// Creates a new record-with-TTL wrapper.
-    pub fn new(record: &'a api::Record, default_ttl: u64) -> Self {
-        Self {
-            record,
-            default_ttl,
-        }
-    }
-}
-
-impl From<RecordWithTtl<'_>> for Record {
-    fn from(value: RecordWithTtl<'_>) -> Self {
-        let record = value.record;
-        Record {
-            id: record.id.clone(),
-            host: record.name.clone(),
-            data: RecordData::from_raw(record.typ.as_str(), record.value.as_str()),
-            ttl: record.ttl.unwrap_or(value.default_ttl),
-        }
+        Ok(())
     }
 }
