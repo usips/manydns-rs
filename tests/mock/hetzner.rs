@@ -108,9 +108,11 @@ async fn test_get_zone_by_name_success() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 
@@ -219,9 +221,11 @@ async fn test_list_records_success() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 
@@ -265,9 +269,11 @@ async fn test_list_records_multiple_values_per_rrset() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 
@@ -312,9 +318,11 @@ async fn test_get_record_success() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 
@@ -359,9 +367,11 @@ async fn test_create_record_success() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 
@@ -396,9 +406,11 @@ async fn test_create_record_add_to_existing_rrset() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 
@@ -432,9 +444,11 @@ async fn test_delete_record_success() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 
@@ -467,9 +481,11 @@ async fn test_delete_last_record_removes_rrset() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 
@@ -506,9 +522,11 @@ async fn test_aaaa_record() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 
@@ -544,9 +562,11 @@ async fn test_mx_record() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 
@@ -582,9 +602,11 @@ async fn test_txt_record() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 
@@ -625,9 +647,11 @@ async fn test_caa_record() {
     Mock::given(method("GET"))
         .and(path("/zones/example.com"))
         .and(header("Authorization", "Bearer test-token"))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(mock_zone_response(123, "example.com", 3600)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_zone_response(
+            123,
+            "example.com",
+            3600,
+        )))
         .mount(&server)
         .await;
 

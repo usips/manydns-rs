@@ -475,7 +475,11 @@ pub fn parse_host_records(xml: &str) -> Result<Vec<HostRecord>, NamecheapError> 
 /// Gets an attribute value from a specific XML element.
 ///
 /// This is useful for extracting data from Namecheap API responses.
-pub fn get_element_attr(xml: &str, tag: &str, attr: &str) -> Result<Option<String>, NamecheapError> {
+pub fn get_element_attr(
+    xml: &str,
+    tag: &str,
+    attr: &str,
+) -> Result<Option<String>, NamecheapError> {
     let mut reader = Reader::from_str(xml);
     let tag_bytes = tag.as_bytes();
     let attr_bytes = attr.as_bytes();

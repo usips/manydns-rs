@@ -456,7 +456,7 @@ pub enum RecordParams {
 }
 
 /// API response status as documented by Technitium.
-/// 
+///
 /// The `status` property can have the following values:
 /// - `ok`: The call was successful.
 /// - `error`: The call failed (additional error properties provided).
@@ -551,7 +551,7 @@ impl EmptyApiResponse {
 }
 
 /// Classify an error message into a specific error type.
-/// 
+///
 /// Note: This is still string-based because Technitium's API doesn't provide
 /// structured error codes—only human-readable error messages. This is the best
 /// we can do without upstream API changes.

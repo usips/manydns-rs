@@ -197,10 +197,7 @@ pub mod hetzner {
     }
 
     /// Creates a mock RRSets list response with pagination.
-    pub fn mock_rrsets_response(
-        zone_id: u64,
-        rrsets: Vec<(&str, &str, u64, Vec<&str>)>,
-    ) -> Value {
+    pub fn mock_rrsets_response(zone_id: u64, rrsets: Vec<(&str, &str, u64, Vec<&str>)>) -> Value {
         let len = rrsets.len();
         json!({
             "meta": {

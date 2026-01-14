@@ -130,7 +130,10 @@ fn test_parse_host_records() {
 #[test]
 fn test_client_config_urls() {
     let sandbox = ClientConfig::sandbox("user", "key", "1.2.3.4");
-    assert_eq!(sandbox.api_url(), "https://api.sandbox.namecheap.com/xml.response");
+    assert_eq!(
+        sandbox.api_url(),
+        "https://api.sandbox.namecheap.com/xml.response"
+    );
     assert!(sandbox.environment.is_sandbox());
 
     let prod = ClientConfig::production("user", "key", "1.2.3.4");

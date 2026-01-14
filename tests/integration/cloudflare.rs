@@ -103,9 +103,8 @@ async fn cleanup_test_records<Z: Zone + DeleteRecord>(zone: &Z, host: &str) {
 #[tokio::test]
 #[ignore = "requires CLOUDFLARE credentials in .env"]
 async fn test_list_zones() {
-    let provider = get_test_provider().expect(
-        "CLOUDFLARE credentials not found. Set CLOUDFLARE_API_TOKEN in .env",
-    );
+    let provider = get_test_provider()
+        .expect("CLOUDFLARE credentials not found. Set CLOUDFLARE_API_TOKEN in .env");
 
     let result = provider.list_zones().await;
 
@@ -126,8 +125,8 @@ async fn test_list_zones() {
 /// Test that authentication failure is handled properly.
 #[tokio::test]
 async fn test_invalid_credentials() {
-    let provider = CloudflareProvider::new("invalid_api_token")
-        .expect("Client creation should succeed");
+    let provider =
+        CloudflareProvider::new("invalid_api_token").expect("Client creation should succeed");
 
     let result = provider.list_zones().await;
 
