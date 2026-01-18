@@ -442,7 +442,7 @@ impl RecordType {
     }
 
     /// Creates a RecordType from a string.
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_uppercase().as_str() {
             "A" => Some(Self::A),
             "NS" => Some(Self::NS),

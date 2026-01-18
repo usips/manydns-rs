@@ -363,6 +363,7 @@ impl Client {
         Ok(result)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_record(
         &self,
         domain_id: &str,
@@ -410,6 +411,7 @@ impl Client {
         Ok(result)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn modify_record(
         &self,
         domain_id: &str,
@@ -439,7 +441,7 @@ impl Client {
 
         let form = params.iter().fold(
             format!("login_token={}&format=json", self.login_token),
-            |acc, (k, v)| format!("{}&{}={}", acc, k, url_encode(&v)),
+            |acc, (k, v)| format!("{}&{}={}", acc, k, url_encode(v)),
         );
 
         let response = self

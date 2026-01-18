@@ -383,12 +383,11 @@ impl CreateRecord for NamecheapZone {
 
         updated
             .into_iter()
-            .filter(|r| {
+            .rfind(|r| {
                 r.name == host
                     && r.record_type == expected_type
                     && r.address.trim_end_matches('.').to_lowercase() == expected_address
             })
-            .last()
             .map(|hr| host_record_to_record(hr, &self.domain))
             .ok_or_else(|| {
                 CreateRecordError::Custom(NamecheapError::Parse(

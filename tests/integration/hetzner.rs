@@ -24,8 +24,6 @@
 //! - Deleting zones via API (`DeleteZone` trait)
 //! - Zone verification status tracking
 
-#![cfg(feature = "hetzner")]
-
 use libdns::hetzner::HetznerProvider;
 use libdns::{CreateRecord, CreateZone, DeleteRecord, DeleteZone, Provider, RecordData, Zone};
 use std::env;
@@ -72,7 +70,7 @@ fn get_test_config() -> Option<TestConfig> {
 }
 
 /// Helper to get the test zone.
-async fn get_test_zone(config: &TestConfig) -> impl Zone + CreateRecord + DeleteRecord + '_ {
+async fn get_test_zone(config: &TestConfig) -> impl CreateRecord + DeleteRecord + '_ {
     let zones = config
         .provider
         .list_zones()
@@ -82,10 +80,12 @@ async fn get_test_zone(config: &TestConfig) -> impl Zone + CreateRecord + Delete
     zones
         .into_iter()
         .find(|z| z.domain() == config.domain)
-        .expect(&format!(
-            "Test domain '{}' not found in account",
-            config.domain
-        ))
+        .unwrap_or_else(|| {
+            panic!(
+                "Test domain '{}' not found in account",
+                config.domain
+            )
+        })
 }
 
 /// Clean up any existing test records for a given host.

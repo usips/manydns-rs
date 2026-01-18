@@ -258,10 +258,8 @@ impl Client {
                     if name.as_ref() == b"ApiResponse" {
                         // Check Status attribute
                         for attr in e.attributes().flatten() {
-                            if attr.key.as_ref() == b"Status" {
-                                if attr.value.as_ref() == b"ERROR" {
-                                    is_error_status = true;
-                                }
+                            if attr.key.as_ref() == b"Status" && attr.value.as_ref() == b"ERROR" {
+                                is_error_status = true;
                             }
                         }
                     } else if name.as_ref() == b"Error" {

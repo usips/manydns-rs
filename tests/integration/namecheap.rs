@@ -30,8 +30,6 @@
 //!   fetching existing records before modifications.
 //! - Sandbox and production use different credentials and domains.
 
-#![cfg(feature = "namecheap")]
-
 use libdns::namecheap::{ClientConfig, NamecheapProvider};
 use libdns::types::Environment;
 use libdns::{CreateRecord, DeleteRecord, Provider, RecordData, Zone};
@@ -89,15 +87,17 @@ fn get_test_config() -> Option<TestConfig> {
 }
 
 /// Helper to get the test zone.
-async fn get_test_zone(config: &TestConfig) -> impl Zone + CreateRecord + DeleteRecord + '_ {
+async fn get_test_zone(config: &TestConfig) -> impl CreateRecord + DeleteRecord + '_ {
     config
         .provider
         .get_zone(&config.domain)
         .await
-        .expect(&format!(
-            "Failed to get test domain '{}' - is it using Namecheap DNS?",
-            config.domain
-        ))
+        .unwrap_or_else(|_| {
+            panic!(
+                "Failed to get test domain '{}' - is it using Namecheap DNS?",
+                config.domain
+            )
+        })
 }
 
 /// Clean up any existing test records for a given host.

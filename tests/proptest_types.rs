@@ -137,7 +137,7 @@ proptest! {
     fn domain_name_wire_format_valid(domain in domain_name_strategy()) {
         if let Some(dn) = DomainName::from_dotted(&domain) {
             let wire = dn.as_wire_bytes();
-            prop_assert!(wire.len() > 0);
+            prop_assert!(!wire.is_empty());
             prop_assert!(wire.len() <= MAX_DOMAIN_LEN);
             // Wire format ends with null byte
             prop_assert_eq!(*wire.last().unwrap(), 0);
@@ -213,7 +213,7 @@ proptest! {
         Just("NS"), Just("ns"),
         Just("SRV"), Just("srv"),
     ]) {
-        let parsed = RecordType::from_str(&rt);
+        let parsed = RecordType::parse(rt);
         prop_assert!(parsed.is_some());
     }
 }

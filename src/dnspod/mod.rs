@@ -217,7 +217,7 @@ impl CreateZone for DnspodProvider {
             .api_client
             .get_domain(&create_response.domain.id)
             .await
-            .map_err(|err| CreateZoneError::Custom(err))?;
+            .map_err(CreateZoneError::Custom)?;
 
         Ok(DnspodZone {
             api_client: self.api_client.clone(),
@@ -362,7 +362,7 @@ impl CreateRecord for DnspodZone {
         ttl: u64,
     ) -> Result<Record, CreateRecordError<Self::CustomCreateError>> {
         let typ = data.get_type();
-        if !SUPPORTED_RECORD_TYPES.iter().any(|r| *r == typ) {
+        if !SUPPORTED_RECORD_TYPES.contains(&typ) {
             return Err(CreateRecordError::UnsupportedType);
         }
 

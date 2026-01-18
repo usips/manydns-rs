@@ -614,6 +614,7 @@ impl Client {
     }
 
     /// Creates a new record.
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_record(
         &self,
         domain: &str,
@@ -658,6 +659,7 @@ impl Client {
     }
 
     /// Modifies an existing record.
+    #[allow(clippy::too_many_arguments)]
     pub async fn modify_record(
         &self,
         domain: &str,

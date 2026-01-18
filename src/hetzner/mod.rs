@@ -486,7 +486,7 @@ impl CreateRecord for HetznerZone {
         ttl: u64,
     ) -> Result<Record, CreateRecordError<Self::CustomCreateError>> {
         let typ = data.get_type();
-        if !SUPPORTED_RECORD_TYPES.iter().any(|r| *r == typ) {
+        if !SUPPORTED_RECORD_TYPES.contains(&typ) {
             return Err(CreateRecordError::UnsupportedType);
         }
 
