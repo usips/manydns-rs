@@ -118,23 +118,29 @@ impl Provider for DnspodProvider {
         &self,
         zone_id: &str,
     ) -> Result<Self::Zone, RetrieveZoneError<Self::CustomRetrieveError>> {
-        let response = self.api_client.get_domain(zone_id).await.map_err(|err| {
-            match &err {
-                DnspodError::Api(status) => {
-                    // DNSPod error codes
-                    match status.code.as_str() {
-                        "-1" => RetrieveZoneError::Unauthorized,
-                        "6" | "8" => RetrieveZoneError::NotFound, // Invalid domain id or no permission
-                        _ => RetrieveZoneError::Custom(err),
-                    }
+        // Try by domain name first if zone_id looks like a domain (contains a dot)
+        // Otherwise try by numeric ID
+        let response = if zone_id.contains('.') {
+            self.api_client.get_domain_by_name(zone_id).await
+        } else {
+            self.api_client.get_domain(zone_id).await
+        }
+        .map_err(|err| match &err {
+            DnspodError::Api(status) => {
+                // DNSPod error codes
+                match status.code.as_str() {
+                    "-1" => RetrieveZoneError::Unauthorized,
+                    "6" | "8" => RetrieveZoneError::NotFound, // Invalid domain id or no permission
+                    _ => RetrieveZoneError::Custom(err),
                 }
-                DnspodError::Request(_) => RetrieveZoneError::Custom(err),
             }
+            DnspodError::Request(_) => RetrieveZoneError::Custom(err),
         })?;
 
+        // domain is guaranteed to be Some after successful API call
         Ok(DnspodZone {
             api_client: self.api_client.clone(),
-            repr: response.domain,
+            repr: response.domain.expect("domain should be present after success check"),
         })
     }
 
@@ -221,7 +227,9 @@ impl CreateZone for DnspodProvider {
 
         Ok(DnspodZone {
             api_client: self.api_client.clone(),
-            repr: domain_response.domain,
+            repr: domain_response
+                .domain
+                .expect("domain should be present after success check"),
         })
     }
 }

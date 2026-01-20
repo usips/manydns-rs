@@ -225,6 +225,15 @@ impl Client {
             return Err(DnspodError::Api(result.status));
         }
 
+        // Ensure domain is present on success
+        if result.domain.is_none() {
+            return Err(DnspodError::Api(Status {
+                code: "0".to_string(),
+                message: "API returned success but no domain data".to_string(),
+                created_at: None,
+            }));
+        }
+
         Ok(result)
     }
 
@@ -246,6 +255,15 @@ impl Client {
 
         if result.status.code != "1" {
             return Err(DnspodError::Api(result.status));
+        }
+
+        // Ensure domain is present on success
+        if result.domain.is_none() {
+            return Err(DnspodError::Api(Status {
+                code: "0".to_string(),
+                message: "API returned success but no domain data".to_string(),
+                created_at: None,
+            }));
         }
 
         Ok(result)
@@ -637,7 +655,9 @@ pub struct DomainListResponse {
 #[derive(Debug, Clone, Deserialize)]
 pub struct DomainInfoResponse {
     pub status: Status,
-    pub domain: Domain,
+    /// Domain info - only present on successful responses
+    #[serde(default)]
+    pub domain: Option<Domain>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
