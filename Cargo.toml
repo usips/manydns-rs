@@ -1,13 +1,14 @@
 [package]
-name = "libdns"
-version = "0.1.1"
-authors = ["Lukas Schulte Pelkum <lockas.sp@proton.me>"]
+name = "manydns"
+version = "0.2.0"
 edition = "2021"
-description = "Abstracting and implementing DNS zone management for different providers"
-repository = "https://github.com/lus/libdns-rs"
+description = "Provider-agnostic DNS zone and record management, inspired by the Go libdns project"
 license = "0BSD"
-keywords = ["dns", "zone", "abstract"]
+keywords = ["dns", "zone", "abstract", "provider"]
 categories = ["api-bindings"]
+
+[lib]
+name = "manydns"
 
 [dependencies]
 thiserror = "2.0"

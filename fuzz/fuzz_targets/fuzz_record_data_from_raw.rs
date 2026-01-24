@@ -1,6 +1,6 @@
 #![no_main]
 
-use libdns::RecordData;
+use manydns::RecordData;
 use libfuzzer_sys::fuzz_target;
 
 // Test various DNS record type strings and values

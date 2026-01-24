@@ -171,7 +171,7 @@ impl Client {
     /// Creates a new Namecheap API client.
     pub fn new(config: ClientConfig) -> Result<Self, Box<dyn Error + Send + Sync>> {
         let http_client = HttpClient::builder()
-            .user_agent("libdns-rs/0.1.0")
+            .user_agent("manydns-rs/0.1.0")
             .build()?;
 
         Ok(Self {

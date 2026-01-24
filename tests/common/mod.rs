@@ -3,6 +3,15 @@
 //! This module provides helpers for setting up mock servers, generating test data,
 //! and other common testing patterns used throughout the test suite.
 
+use wiremock::MockServer;
+
+/// Sets up a new mock server for testing.
+///
+/// This is the standard way to create a mock server in tests.
+pub async fn setup_mock_server() -> MockServer {
+    MockServer::start().await
+}
+
 /// Test constants used across multiple test modules.
 #[allow(dead_code)]
 pub mod constants {

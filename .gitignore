@@ -7,3 +7,5 @@
 
 # Local Development
 .claude
+/fuzz/target
+/fuzz/Cargo.lock

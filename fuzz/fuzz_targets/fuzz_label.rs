@@ -1,6 +1,6 @@
 #![no_main]
 
-use libdns::types::Label;
+use manydns::types::Label;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {

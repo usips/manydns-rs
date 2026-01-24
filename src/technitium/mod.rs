@@ -14,8 +14,8 @@
 //! # Example
 //!
 //! ```no_run
-//! use libdns::technitium::TechnitiumProvider;
-//! use libdns::{Provider, Zone};
+//! use manydns::technitium::TechnitiumProvider;
+//! use manydns::{Provider, Zone};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! // Using an API token (recommended)
@@ -85,7 +85,7 @@ impl TechnitiumProvider {
     /// # Example
     ///
     /// ```no_run
-    /// use libdns::technitium::TechnitiumProvider;
+    /// use manydns::technitium::TechnitiumProvider;
     ///
     /// let provider = TechnitiumProvider::new("http://localhost:5380", "my-api-token").unwrap();
     /// ```

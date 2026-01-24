@@ -2,11 +2,11 @@
 //!
 //! Tests for domain splitting, record conversion, and XML parsing utilities.
 
-use libdns::namecheap::{
+use manydns::namecheap::{
     get_element_attr, host_record_to_record, parse_host_records, split_domain, ClientConfig,
     HostRecord,
 };
-use libdns::RecordData;
+use manydns::RecordData;
 
 // =============================================================================
 // Domain Splitting Tests

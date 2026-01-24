@@ -1,6 +1,6 @@
 //! DNSPod DNS provider implementation.
 //!
-//! This module provides an implementation of the libdns traits for DNSPod, a DNS service by Tencent.
+//! This module provides an implementation of the manydns traits for DNSPod, a DNS service by Tencent.
 //!
 //! # Authentication
 //!
@@ -20,8 +20,8 @@
 //! # Example
 //!
 //! ```no_run
-//! use libdns::dnspod::{DnspodProvider, ClientConfig};
-//! use libdns::{Provider, Zone};
+//! use manydns::dnspod::{DnspodProvider, ClientConfig};
+//! use manydns::{Provider, Zone};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! // Configure with YOUR program name and contact email (not the library's)
@@ -97,7 +97,7 @@ impl DnspodProvider {
     /// # Example
     ///
     /// ```no_run
-    /// use libdns::dnspod::{DnspodProvider, ClientConfig};
+    /// use manydns::dnspod::{DnspodProvider, ClientConfig};
     ///
     /// let config = ClientConfig::new("My DDNS App", "1.0.0", "me@example.com");
     /// let provider = DnspodProvider::new("secret_id,secret_key", &config).unwrap();

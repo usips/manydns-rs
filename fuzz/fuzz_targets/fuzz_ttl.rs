@@ -1,6 +1,6 @@
 #![no_main]
 
-use libdns::types::Ttl;
+use manydns::types::Ttl;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: u32| {

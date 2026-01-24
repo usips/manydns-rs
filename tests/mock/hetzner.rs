@@ -23,8 +23,8 @@
 use crate::common::hetzner::*;
 use crate::common::setup_mock_server;
 
-use libdns::hetzner::HetznerProvider;
-use libdns::{CreateRecord, CreateZone, DeleteRecord, DeleteZone, Provider, RecordData, Zone};
+use manydns::hetzner::HetznerProvider;
+use manydns::{CreateRecord, CreateZone, DeleteRecord, DeleteZone, Provider, RecordData, Zone};
 use proptest::prelude::*;
 use serde_json::json;
 use std::net::Ipv4Addr;

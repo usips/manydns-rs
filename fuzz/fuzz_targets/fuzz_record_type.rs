@@ -1,6 +1,6 @@
 #![no_main]
 
-use libdns::types::RecordType;
+use manydns::types::RecordType;
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &str| {

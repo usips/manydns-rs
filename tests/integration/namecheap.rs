@@ -30,9 +30,9 @@
 //!   fetching existing records before modifications.
 //! - Sandbox and production use different credentials and domains.
 
-use libdns::namecheap::{ClientConfig, NamecheapProvider};
-use libdns::types::Environment;
-use libdns::{CreateRecord, DeleteRecord, Provider, RecordData, Zone};
+use manydns::namecheap::{ClientConfig, NamecheapProvider};
+use manydns::types::Environment;
+use manydns::{CreateRecord, DeleteRecord, Provider, RecordData, Zone};
 use std::env;
 
 /// Test configuration loaded from environment.
@@ -351,7 +351,7 @@ async fn test_txt_record_crud() {
 
     cleanup_test_records(&zone, &host, &config.domain).await;
 
-    let data = RecordData::TXT("v=libdns test record".to_string());
+    let data = RecordData::TXT("v=manydns test record".to_string());
 
     println!("  Creating TXT record: {} -> {:?}", host, data);
     let created = zone

@@ -17,8 +17,8 @@
 //!
 //! *Required for record manipulation tests
 
-use libdns::cloudflare::CloudflareProvider;
-use libdns::{CreateRecord, DeleteRecord, Provider, RecordData, Zone};
+use manydns::cloudflare::CloudflareProvider;
+use manydns::{CreateRecord, DeleteRecord, Provider, RecordData, Zone};
 use std::env;
 
 /// Test configuration loaded from environment.
@@ -358,7 +358,7 @@ async fn test_txt_record_crud() {
     cleanup_test_records(&zone, &host).await;
 
     // Create TXT record
-    let txt_value = "v=libdns-test; test=true";
+    let txt_value = "v=manydns-test; test=true";
     let data = RecordData::TXT(txt_value.to_string());
 
     println!("  Creating TXT record: {} -> \"{}\"", host, txt_value);

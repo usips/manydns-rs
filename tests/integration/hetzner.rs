@@ -24,8 +24,8 @@
 //! - Deleting zones via API (`DeleteZone` trait)
 //! - Zone verification status tracking
 
-use libdns::hetzner::HetznerProvider;
-use libdns::{CreateRecord, CreateZone, DeleteRecord, DeleteZone, Provider, RecordData, Zone};
+use manydns::hetzner::HetznerProvider;
+use manydns::{CreateRecord, CreateZone, DeleteRecord, DeleteZone, Provider, RecordData, Zone};
 use std::env;
 
 /// Test configuration loaded from environment.
@@ -384,7 +384,7 @@ async fn test_txt_record_crud() {
     cleanup_test_records(&zone, &host).await;
 
     // Create TXT record
-    let txt_value = "v=libdns-test; test=true";
+    let txt_value = "v=manydns-test; test=true";
     let data = RecordData::TXT(txt_value.to_string());
 
     println!("  Creating TXT record: {} -> \"{}\"", host, txt_value);
@@ -540,7 +540,7 @@ async fn test_zone_create_delete() {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs();
-    let test_domain = format!("libdns-test-{}.example", timestamp);
+    let test_domain = format!("manydns-test-{}.example", timestamp);
 
     println!("Creating zone: {}", test_domain);
 

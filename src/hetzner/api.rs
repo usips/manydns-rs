@@ -12,7 +12,7 @@
 //! # Example
 //!
 //! ```rust,no_run
-//! use libdns::hetzner::api::Client;
+//! use manydns::hetzner::api::Client;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let client = Client::new("your-api-token")?;

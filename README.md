@@ -1,45 +1,60 @@
-# libdns-rs
+# manydns
 
-[![crates.io](https://img.shields.io/crates/v/libdns.svg)](https://crates.io/crates/libdns)
-[![Docs](https://docs.rs/libdns/badge.svg)](https://docs.rs/libdns)
-![Build and check](https://github.com/lus/libdns-rs/actions/workflows/build_and_check.yml/badge.svg)
+A Rust library providing a provider-agnostic API for managing DNS zones and records.
 
-This project is a rip-off of [libdns](https://github.com/libdns/libdns) written in Rust.
-It defines an abstract API for managing DNS zones and implements it for several widely-used providers.
+## Overview
 
-> [!NOTE]
-> This project is my very first (serious) attempt at learning Rust. I am more than thankful for any suggestions and tips on this matter, so please feel welcomed to bring them up in an issue :)
+manydns defines abstract traits for DNS zone and record management, with concrete implementations for multiple DNS providers. The API design is inspired by the Go [libdns](https://github.com/libdns/libdns) project, maintaining a familiar interface for developers coming from that ecosystem.
 
-## Using
+## Usage
 
-To add `libdns` to your project, an entry like the following would be enough to include only the abstract DNS zone management traits:
+Add `manydns` to your project to use the abstract DNS zone management traits:
 
 ```toml
 [dependencies]
-libdns = { version = "0" }
+manydns = { version = "0.2" }
 ```
 
-### Including provider implementations
+### Provider Implementations
 
-If you need one or more concrete provider implementations as well, you can simply add their corresponding feature flags to the dependency's `features` field:
+Enable provider implementations via feature flags:
 
-| Provider                                        | Feature Flag |
-|-------------------------------------------------|--------------|
-| [Hetzner](https://www.hetzner.com/dns-console/) | `hetzner`    |
+| Provider                                            | Feature Flag     |
+|-----------------------------------------------------|------------------|
+| [Cloudflare](https://www.cloudflare.com/)           | `cloudflare`     |
+| [Hetzner Cloud](https://www.hetzner.com/dns-console/) | `hetzner`      |
+| [DNSPod](https://www.dnspod.cn/)                    | `dnspod`         |
+| [Tencent Cloud](https://cloud.tencent.com/)         | `tencent`        |
+| [Technitium](https://technitium.com/dns/)           | `technitium-dns` |
+| [Namecheap](https://www.namecheap.com/)             | `namecheap`      |
 
-### Choosing TLS backend
+Example with Cloudflare:
 
-The provider implementations use [`reqwest`](https://crates.io/crates/reqwest) for communicating with their APIs whenever possible.
-By default, the `default-tls` feature is enabled for reqwest.
-These features can be given instead for choosing a different TLS backend (remember to disable the default features):
+```toml
+[dependencies]
+manydns = { version = "0.2", features = ["cloudflare"] }
+```
+
+### TLS Backend
+
+Provider implementations use [`reqwest`](https://crates.io/crates/reqwest) for HTTP communication. By default, `default-tls` is enabled. Alternative TLS backends:
 
 - `default-tls` (default)
 - `rustls-tls`
 - `native-tls`
-- `native-tls-vendor`
+- `native-tls-vendored`
 
-Please refer to [`reqwest`s docs](https://docs.rs/reqwest/0.12.2/reqwest/#optional-features) for an overview on what TLS backend does what.
+To use a different backend, disable default features:
+
+```toml
+[dependencies]
+manydns = { version = "0.2", default-features = false, features = ["rustls-tls", "cloudflare"] }
+```
+
+## API Compatibility
+
+manydns aims to provide a similar API to the Go [libdns](https://github.com/libdns/libdns) project. The core traits (`Provider`, `Zone`, `CreateRecord`, `DeleteRecord`, etc.) mirror the Go interfaces, making it easier to port code between the two ecosystems.
 
 ## Contributing
 
-I am grateful for any contribution to this project, so feel free to request, add or fix provider implementations when neccessary.
+Contributions are welcome. Feel free to add new provider implementations or improve existing ones.

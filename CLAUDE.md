@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-libdns-rs is a Rust library providing an abstract, provider-agnostic API for managing DNS zones and records. It's inspired by the Go [libdns](https://github.com/libdns/libdns) project. The crate defines core traits and optionally includes implementations for multiple DNS providers.
+manydns is a Rust library providing a provider-agnostic API for managing DNS zones and records. The API design is inspired by the Go [libdns](https://github.com/libdns/libdns) project, maintaining a familiar interface. The crate defines core traits and optionally includes implementations for multiple DNS providers.
 
 ## Build and Test Commands
 

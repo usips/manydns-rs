@@ -26,9 +26,9 @@
 //! # Example
 //!
 //! ```no_run
-//! use libdns::namecheap::{NamecheapProvider, ClientConfig};
-//! use libdns::types::Environment;
-//! use libdns::{Provider, Zone};
+//! use manydns::namecheap::{NamecheapProvider, ClientConfig};
+//! use manydns::types::Environment;
+//! use manydns::{Provider, Zone};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 //! // Configure for sandbox testing
@@ -210,8 +210,8 @@ impl NamecheapProvider {
     /// # Example
     ///
     /// ```no_run
-    /// use libdns::namecheap::{NamecheapProvider, ClientConfig};
-    /// use libdns::types::Environment;
+    /// use manydns::namecheap::{NamecheapProvider, ClientConfig};
+    /// use manydns::types::Environment;
     ///
     /// // For sandbox testing
     /// let config = ClientConfig::sandbox("username", "api_key", "1.2.3.4");
@@ -436,7 +436,7 @@ impl DeleteRecord for NamecheapZone {
     }
 }
 
-/// Converts a Namecheap HostRecord to a libdns Record.
+/// Converts a Namecheap HostRecord to a manydns Record.
 ///
 /// This is useful for custom transformations of Namecheap API responses.
 pub fn host_record_to_record(hr: HostRecord, domain: &str) -> Record {

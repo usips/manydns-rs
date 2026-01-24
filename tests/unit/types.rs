@@ -2,7 +2,7 @@
 //!
 //! Tests Label, DomainName, Ttl, RecordType, and related type properties.
 
-use libdns::types::{DomainName, Label, RecordClass, RecordType, Ttl, MAX_TTL};
+use manydns::types::{DomainName, Label, RecordClass, RecordType, Ttl, MAX_TTL};
 
 #[test]
 fn test_label_size() {

@@ -5,8 +5,8 @@
 use crate::common::cloudflare::*;
 use crate::common::setup_mock_server;
 
-use libdns::cloudflare::CloudflareProvider;
-use libdns::{
+use manydns::cloudflare::CloudflareProvider;
+use manydns::{
     CreateRecord, CreateRecordError, DeleteRecord, DeleteRecordError, Provider, RecordData,
     RetrieveRecordError, RetrieveZoneError, Zone,
 };

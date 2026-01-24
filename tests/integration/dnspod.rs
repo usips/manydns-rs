@@ -21,8 +21,8 @@
 //!
 //! *Required for record manipulation tests
 
-use libdns::dnspod::{ClientConfig, DnspodProvider};
-use libdns::{CreateRecord, DeleteRecord, Provider, RecordData, Zone};
+use manydns::dnspod::{ClientConfig, DnspodProvider};
+use manydns::{CreateRecord, DeleteRecord, Provider, RecordData, Zone};
 use std::env;
 
 /// Test configuration loaded from environment.
@@ -49,7 +49,7 @@ fn get_test_provider() -> Option<DnspodProvider> {
 
     let token_id = env::var("DNSPOD_TOKEN_ID").ok()?;
     let token = env::var("DNSPOD_TOKEN").ok()?;
-    let program = env::var("DNSPOD_TEST_PROGRAM").unwrap_or_else(|_| "libdns-test".to_string());
+    let program = env::var("DNSPOD_TEST_PROGRAM").unwrap_or_else(|_| "manydns-test".to_string());
     let version = env::var("DNSPOD_TEST_VERSION").unwrap_or_else(|_| "0.1.0".to_string());
     let email = env::var("DNSPOD_TEST_EMAIL").unwrap_or_else(|_| "test@example.com".to_string());
 
@@ -136,7 +136,7 @@ async fn test_list_zones() {
 /// Test that authentication failure is handled properly.
 #[tokio::test]
 async fn test_invalid_credentials() {
-    let config = ClientConfig::new("libdns-test", "0.1.0", "test@example.com");
+    let config = ClientConfig::new("manydns-test", "0.1.0", "test@example.com");
     let provider = DnspodProvider::new("invalid_id,invalid_key", &config)
         .expect("Client creation should succeed");
 
@@ -363,7 +363,7 @@ async fn test_txt_record_crud() {
     cleanup_test_records(&zone, &host).await;
 
     // Create TXT record
-    let txt_value = "v=libdns-test; test=true";
+    let txt_value = "v=manydns-test; test=true";
     let data = RecordData::TXT(txt_value.to_string());
 
     println!("  Creating TXT record: {} -> \"{}\"", host, txt_value);

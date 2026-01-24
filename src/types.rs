@@ -46,7 +46,7 @@ pub const MAX_TTL: u32 = 2_147_483_647;
 /// # Example
 ///
 /// ```
-/// use libdns::types::Environment;
+/// use manydns::types::Environment;
 ///
 /// let env = Environment::Sandbox;
 /// assert!(!env.is_production());

@@ -11,8 +11,8 @@
 //! # Example
 //!
 //! ```no_run
-//! use libdns::hetzner::HetznerProvider;
-//! use libdns::{Provider, Zone, CreateZone, DeleteZone};
+//! use manydns::hetzner::HetznerProvider;
+//! use manydns::{Provider, Zone, CreateZone, DeleteZone};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let provider = HetznerProvider::new("your_api_token")?;
@@ -106,7 +106,7 @@ impl HetznerProvider {
     /// # Example
     ///
     /// ```no_run
-    /// use libdns::hetzner::HetznerProvider;
+    /// use manydns::hetzner::HetznerProvider;
     ///
     /// let provider = HetznerProvider::new("your_api_token").unwrap();
     /// ```
@@ -286,13 +286,13 @@ impl DeleteZone for HetznerProvider {
 /// The Hetzner Cloud API uses RRSets (Resource Record Sets) instead of
 /// individual records. An RRSet is a group of records with the same name
 /// and type. This implementation handles the conversion between the
-/// libdns record model and Hetzner's RRSet model.
+/// manydns record model and Hetzner's RRSet model.
 ///
 /// # Example
 ///
 /// ```rust,no_run
-/// use libdns::hetzner::HetznerProvider;
-/// use libdns::{Provider, Zone, CreateRecord, DeleteRecord, RecordData};
+/// use manydns::hetzner::HetznerProvider;
+/// use manydns::{Provider, Zone, CreateRecord, DeleteRecord, RecordData};
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// let provider = HetznerProvider::new("your-api-token")?;

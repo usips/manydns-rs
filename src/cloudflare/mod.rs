@@ -10,8 +10,8 @@
 //! # Example
 //!
 //! ```no_run
-//! use libdns::cloudflare::CloudflareProvider;
-//! use libdns::{Provider, Zone};
+//! use manydns::cloudflare::CloudflareProvider;
+//! use manydns::{Provider, Zone};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 //! let provider = CloudflareProvider::new("your_api_token")?;
@@ -84,7 +84,7 @@ impl CloudflareProvider {
     /// # Example
     ///
     /// ```no_run
-    /// use libdns::cloudflare::CloudflareProvider;
+    /// use manydns::cloudflare::CloudflareProvider;
     ///
     /// let provider = CloudflareProvider::new("your_api_token").unwrap();
     /// ```

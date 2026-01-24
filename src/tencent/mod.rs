@@ -15,8 +15,8 @@
 //! # Example
 //!
 //! ```no_run
-//! use libdns::tencent::TencentProvider;
-//! use libdns::{Provider, Zone};
+//! use manydns::tencent::TencentProvider;
+//! use manydns::{Provider, Zone};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 //! let provider = TencentProvider::new("your_secret_id", "your_secret_key")?;
@@ -94,7 +94,7 @@ impl TencentProvider {
     /// # Example
     ///
     /// ```no_run
-    /// use libdns::tencent::TencentProvider;
+    /// use manydns::tencent::TencentProvider;
     ///
     /// let provider = TencentProvider::new("secret_id", "secret_key").unwrap();
     /// ```

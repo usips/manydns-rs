@@ -3,8 +3,8 @@
 //! These tests use proptest to generate arbitrary inputs and verify
 //! invariants across the library's type system.
 
-use libdns::types::*;
-use libdns::RecordData;
+use manydns::types::*;
+use manydns::RecordData;
 use proptest::prelude::*;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
