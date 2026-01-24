@@ -29,7 +29,8 @@ cargo fmt
 cargo clippy --all-features
 
 # Fuzzing (requires nightly)
-cargo +nightly fuzz run fuzz_label
+cargo +nightly fuzz list              # Show available fuzz targets
+cargo +nightly fuzz run fuzz_label    # Run a specific fuzz target
 ```
 
 ## Architecture
