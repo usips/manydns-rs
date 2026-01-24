@@ -90,3 +90,18 @@ Tests are in `tests/` with this structure:
 - Tests use `#[tokio::test]` for async execution
 - Property-based testing with `proptest` for type validation
 - Provider-specific quirks documented in rustdoc (see Namecheap's destructive update warning)
+
+## API Comparison with Go libdns
+
+This library is inspired by Go [libdns](https://github.com/libdns/libdns) but adapts the API for Rust idioms:
+
+| Aspect | Go libdns | Rust manydns |
+|--------|-----------|--------------|
+| Structure | Flat: `provider.GetRecords(ctx, zone)` | Hierarchical: `provider.get_zone(id).await?.list_records().await?` |
+| Zone | String parameter | `Zone` trait object with methods |
+| Record names | Relative to zone, `@` for apex | Same: relative to zone, `@` for apex |
+| Operations | Batch (`[]Record`) | Single record |
+| Deletion | Match by content | By provider-specific ID |
+| Zone management | `ListZones` only | `ListZones`, `CreateZone`, `DeleteZone` |
+
+The hierarchical design provides better Rust ownership semantics and allows zones to cache metadata. Record naming conventions are intentionally identical to Go libdns for portability.
