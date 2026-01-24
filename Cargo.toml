@@ -1,11 +1,13 @@
 [package]
 name = "manydns"
-version = "0.2.0"
+version = "1.0.0"
 edition = "2021"
 description = "Provider-agnostic DNS zone and record management, inspired by the Go libdns project"
 license = "0BSD"
 keywords = ["dns", "zone", "abstract", "provider"]
 categories = ["api-bindings"]
+repository = "https://github.com/usips/manydns-rs"
+documentation = "https://docs.rs/manydns"
 
 [lib]
 name = "manydns"
