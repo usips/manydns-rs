@@ -100,7 +100,52 @@ impl Client {
     /// This will create a session token that expires after 30 minutes of inactivity.
     /// For long-running applications, consider using a non-expiring API token instead.
     pub async fn login(base_url: &str, username: &str, password: &str) -> Result<Self, ApiError> {
-        let http_client = HttpClient::builder().build().map_err(ApiError::Request)?;
+        Self::login_with_config(base_url, username, password, HttpClientConfig::default()).await
+    }
+
+    /// Creates a new API client by logging in with username and password and custom HTTP config.
+    ///
+    /// This will create a session token that expires after 30 minutes of inactivity.
+    /// For long-running applications, consider using a non-expiring API token instead.
+    ///
+    /// # Arguments
+    ///
+    /// * `base_url` - The base URL of the Technitium DNS Server
+    /// * `username` - The username (default is `admin`)
+    /// * `password` - The password (default is `admin`)
+    /// * `config` - HTTP client configuration for network binding
+    pub async fn login_with_config(
+        base_url: &str,
+        username: &str,
+        password: &str,
+        config: HttpClientConfig,
+    ) -> Result<Self, ApiError> {
+        let mut builder = HttpClient::builder();
+
+        if let Some(timeout) = config.timeout {
+            builder = builder.timeout(timeout);
+        }
+
+        if let Some(addr) = config.local_address {
+            builder = builder.local_address(addr);
+        }
+
+        #[cfg(any(
+            target_os = "android",
+            target_os = "fuchsia",
+            target_os = "linux",
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "watchos",
+            target_os = "illumos",
+            target_os = "solaris",
+        ))]
+        if let Some(ref iface) = config.interface {
+            builder = builder.interface(iface);
+        }
+
+        let http_client = builder.build().map_err(ApiError::Request)?;
         let base_url = base_url.trim_end_matches('/').to_string();
 
         let response: LoginResponse = http_client

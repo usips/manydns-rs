@@ -145,6 +145,49 @@ impl TechnitiumProvider {
             api_client: Arc::new(api_client),
         })
     }
+
+    /// Creates a new Technitium DNS provider by logging in with custom HTTP configuration.
+    ///
+    /// This creates a session token that expires after 30 minutes of inactivity.
+    /// For long-running applications, use [`TechnitiumProvider::with_config`] with an API token.
+    ///
+    /// # Arguments
+    ///
+    /// * `base_url` - The base URL of the Technitium DNS Server
+    /// * `username` - The username (default is `admin`)
+    /// * `password` - The password (default is `admin`)
+    /// * `config` - HTTP client configuration for network binding
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use manydns::HttpClientConfig;
+    /// use manydns::technitium::TechnitiumProvider;
+    ///
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// let config = HttpClientConfig::new()
+    ///     .local_address("192.168.1.100".parse().unwrap());
+    /// let provider = TechnitiumProvider::login_with_config(
+    ///     "http://localhost:5380",
+    ///     "admin",
+    ///     "password",
+    ///     config,
+    /// ).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn login_with_config(
+        base_url: &str,
+        username: &str,
+        password: &str,
+        config: HttpClientConfig,
+    ) -> Result<Self, api::ApiError> {
+        let api_client =
+            api::Client::login_with_config(base_url, username, password, config).await?;
+        Ok(Self {
+            api_client: Arc::new(api_client),
+        })
+    }
 }
 
 impl Provider for TechnitiumProvider {
