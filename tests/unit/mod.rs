@@ -7,3 +7,6 @@ mod types;
 
 #[cfg(feature = "namecheap")]
 mod namecheap;
+
+#[cfg(feature = "cloudflare")]
+mod http_config;
