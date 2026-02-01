@@ -112,6 +112,27 @@ Record names are **relative to the zone**, following the same convention as Go l
 - `"@"` refers to the zone apex (`example.com` itself)
 - `"sub.domain"` refers to `sub.domain.example.com`
 
+## Network Configuration
+
+All providers support `HttpClientConfig` for controlling outbound connections:
+
+```rust
+use manydns::HttpClientConfig;
+use manydns::cloudflare::CloudflareProvider;
+
+// Bind to a specific source IP address
+let config = HttpClientConfig::new()
+    .local_address("192.168.1.100".parse().unwrap())
+    .timeout(std::time::Duration::from_secs(60));
+
+let provider = CloudflareProvider::with_config("your_api_token", config)?;
+```
+
+Available options:
+- `local_address(IpAddr)` - Bind outgoing connections to a specific local IP
+- `interface(&str)` - Bind to a network interface (Linux/macOS only, e.g., `"eth0"`)
+- `timeout(Duration)` - Set request timeout
+
 ## TLS Backend
 
 Provider implementations use [reqwest](https://crates.io/crates/reqwest) for HTTP. By default, `default-tls` is enabled. Alternative backends:

@@ -83,6 +83,15 @@ Tests are in `tests/` with this structure:
 - `integration/` - Live API tests marked `#[ignore]`, require `.env` credentials
 - `common/` - Shared test utilities and mock helpers
 
+### HTTP Client Configuration
+
+All providers support `HttpClientConfig` for network binding:
+- `local_address: Option<IpAddr>` - Bind to specific source IP
+- `interface: Option<String>` - Bind to network interface (Linux/macOS)
+- `timeout: Option<Duration>` - Request timeout
+
+Providers expose this via `with_config()` or `with_http_config()` constructors.
+
 ## Key Conventions
 
 - All I/O methods return `impl Future<Output = Result<..>>` (async-first)
