@@ -1,6 +1,6 @@
 [package]
 name = "manydns"
-version = "1.1.0"
+version = "1.1.1"
 edition = "2021"
 description = "Provider-agnostic DNS zone and record management, inspired by the Go libdns project"
 license = "0BSD"
