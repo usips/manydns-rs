@@ -24,8 +24,9 @@
 use std::{
     fmt::Debug,
     future::Future,
-    net::{Ipv4Addr, Ipv6Addr},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
     str::FromStr,
+    time::Duration,
 };
 
 #[cfg(feature = "serde")]
@@ -34,6 +35,106 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub mod types;
+
+/// Configuration for the underlying HTTP client used by providers.
+///
+/// This allows customizing network behavior such as binding to a specific
+/// local IP address or network interface.
+///
+/// # Example
+///
+/// ```
+/// use std::net::IpAddr;
+/// use manydns::HttpClientConfig;
+///
+/// let config = HttpClientConfig::new()
+///     .local_address("192.168.1.100".parse().unwrap())
+///     .timeout(std::time::Duration::from_secs(30));
+/// ```
+#[derive(Debug, Clone, Default)]
+pub struct HttpClientConfig {
+    /// Local IP address to bind outgoing connections to.
+    ///
+    /// This is useful when the machine has multiple network interfaces
+    /// and you want to control which one is used for DNS API requests.
+    pub local_address: Option<IpAddr>,
+
+    /// Network interface name to bind connections to (e.g., "eth0", "wlan0").
+    ///
+    /// On Linux, this uses `SO_BINDTODEVICE`. On macOS, this uses `IP_BOUND_IF`.
+    /// Not available on all platforms.
+    pub interface: Option<String>,
+
+    /// Request timeout duration.
+    ///
+    /// If not set, provider-specific defaults are used.
+    pub timeout: Option<Duration>,
+}
+
+impl HttpClientConfig {
+    /// Creates a new HTTP client configuration with default values.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the local IP address to bind outgoing connections to.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::net::IpAddr;
+    /// use manydns::HttpClientConfig;
+    ///
+    /// // Bind to a specific IPv4 address
+    /// let config = HttpClientConfig::new()
+    ///     .local_address("10.0.0.5".parse().unwrap());
+    ///
+    /// // Bind to a specific IPv6 address
+    /// let config = HttpClientConfig::new()
+    ///     .local_address("::1".parse().unwrap());
+    /// ```
+    pub fn local_address(mut self, addr: IpAddr) -> Self {
+        self.local_address = Some(addr);
+        self
+    }
+
+    /// Sets the network interface to bind connections to.
+    ///
+    /// # Platform Support
+    ///
+    /// - Linux: Uses `SO_BINDTODEVICE`
+    /// - macOS: Uses `IP_BOUND_IF` / `IPV6_BOUND_IF`
+    /// - Not available on Windows
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use manydns::HttpClientConfig;
+    ///
+    /// let config = HttpClientConfig::new()
+    ///     .interface("eth0");
+    /// ```
+    pub fn interface(mut self, name: impl Into<String>) -> Self {
+        self.interface = Some(name.into());
+        self
+    }
+
+    /// Sets the request timeout duration.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use manydns::HttpClientConfig;
+    ///
+    /// let config = HttpClientConfig::new()
+    ///     .timeout(Duration::from_secs(60));
+    /// ```
+    pub fn timeout(mut self, duration: Duration) -> Self {
+        self.timeout = Some(duration);
+        self
+    }
+}
 
 #[cfg(feature = "dnspod")]
 pub mod dnspod;

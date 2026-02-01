@@ -14,6 +14,8 @@ use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use thiserror::Error;
 
+use crate::HttpClientConfig;
+
 /// The Tencent Cloud DNSPod API endpoint.
 const TENCENT_API_HOST: &str = "dnspod.intl.tencentcloudapi.com";
 const TENCENT_API_URL: &str = "https://dnspod.intl.tencentcloudapi.com";
@@ -424,7 +426,47 @@ impl Client {
         secret_id: &str,
         secret_key: &str,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let http_client = reqwest::Client::builder().build()?;
+        Self::with_config(secret_id, secret_key, HttpClientConfig::default())
+    }
+
+    /// Creates a new Tencent Cloud API client with custom HTTP configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `secret_id` - Tencent Cloud SecretId from API key management
+    /// * `secret_key` - Tencent Cloud SecretKey from API key management
+    /// * `config` - HTTP client configuration for network binding
+    pub fn with_config(
+        secret_id: &str,
+        secret_key: &str,
+        config: HttpClientConfig,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let mut builder = reqwest::Client::builder();
+
+        if let Some(timeout) = config.timeout {
+            builder = builder.timeout(timeout);
+        }
+
+        if let Some(addr) = config.local_address {
+            builder = builder.local_address(addr);
+        }
+
+        #[cfg(any(
+            target_os = "android",
+            target_os = "fuchsia",
+            target_os = "linux",
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "watchos",
+            target_os = "illumos",
+            target_os = "solaris",
+        ))]
+        if let Some(ref iface) = config.interface {
+            builder = builder.interface(iface);
+        }
+
+        let http_client = builder.build()?;
 
         Ok(Self {
             http_client,

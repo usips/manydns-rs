@@ -45,8 +45,8 @@ use std::sync::Arc;
 
 use crate::{
     CreateRecord, CreateRecordError, CreateZone, CreateZoneError, DeleteRecord, DeleteRecordError,
-    DeleteZone, DeleteZoneError, Provider, Record, RecordData, RetrieveRecordError,
-    RetrieveZoneError, Zone,
+    DeleteZone, DeleteZoneError, HttpClientConfig, Provider, Record, RecordData,
+    RetrieveRecordError, RetrieveZoneError, Zone,
 };
 
 pub mod api;
@@ -91,6 +91,35 @@ impl TechnitiumProvider {
     /// ```
     pub fn new(base_url: &str, token: &str) -> Result<Self, reqwest::Error> {
         let api_client = api::Client::new(base_url, token)?;
+        Ok(Self {
+            api_client: Arc::new(api_client),
+        })
+    }
+
+    /// Creates a new Technitium DNS provider with custom HTTP configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `base_url` - The base URL of the Technitium DNS Server
+    /// * `token` - The API token for authentication
+    /// * `config` - HTTP client configuration for network binding
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use manydns::technitium::TechnitiumProvider;
+    /// use manydns::HttpClientConfig;
+    ///
+    /// let config = HttpClientConfig::new()
+    ///     .local_address("192.168.1.100".parse().unwrap());
+    /// let provider = TechnitiumProvider::with_config("http://localhost:5380", "my-api-token", config).unwrap();
+    /// ```
+    pub fn with_config(
+        base_url: &str,
+        token: &str,
+        config: HttpClientConfig,
+    ) -> Result<Self, reqwest::Error> {
+        let api_client = api::Client::with_config(base_url, token, config)?;
         Ok(Self {
             api_client: Arc::new(api_client),
         })

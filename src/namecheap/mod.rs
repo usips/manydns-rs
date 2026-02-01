@@ -75,8 +75,8 @@ pub use api::{
 };
 
 use crate::{
-    CreateRecord, CreateRecordError, DeleteRecord, DeleteRecordError, Provider, Record, RecordData,
-    RetrieveRecordError, RetrieveZoneError, Zone,
+    CreateRecord, CreateRecordError, DeleteRecord, DeleteRecordError, HttpClientConfig, Provider,
+    Record, RecordData, RetrieveRecordError, RetrieveZoneError, Zone,
 };
 
 /// Namecheap DNS provider.
@@ -223,6 +223,29 @@ impl NamecheapProvider {
     /// ```
     pub fn new(config: ClientConfig) -> Result<Self, Box<dyn StdErr + Send + Sync>> {
         let api_client = Client::new(config)?;
+        Ok(Self {
+            api_client: Arc::new(api_client),
+        })
+    }
+
+    /// Creates a new Namecheap provider with custom HTTP client configuration.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use manydns::namecheap::{NamecheapProvider, ClientConfig};
+    /// use manydns::HttpClientConfig;
+    ///
+    /// let config = ClientConfig::production("username", "api_key", "1.2.3.4");
+    /// let http_config = HttpClientConfig::new()
+    ///     .local_address("192.168.1.100".parse().unwrap());
+    /// let provider = NamecheapProvider::with_http_config(config, http_config).unwrap();
+    /// ```
+    pub fn with_http_config(
+        config: ClientConfig,
+        http_config: HttpClientConfig,
+    ) -> Result<Self, Box<dyn StdErr + Send + Sync>> {
+        let api_client = Client::with_http_config(config, http_config)?;
         Ok(Self {
             api_client: Arc::new(api_client),
         })

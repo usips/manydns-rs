@@ -11,6 +11,8 @@ use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use crate::HttpClientConfig;
+
 /// The Cloudflare API base URL.
 const CLOUDFLARE_API_URL: &str = "https://api.cloudflare.com/client/v4";
 
@@ -419,7 +421,20 @@ impl Client {
     ///
     /// * `api_token` - Cloudflare API token (Bearer token)
     pub fn new(api_token: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        Self::with_base_url(api_token, CLOUDFLARE_API_URL)
+        Self::with_base_url(api_token, CLOUDFLARE_API_URL, HttpClientConfig::default())
+    }
+
+    /// Creates a new Cloudflare API client with custom HTTP configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_token` - Cloudflare API token (Bearer token)
+    /// * `config` - HTTP client configuration for network binding
+    pub fn with_config(
+        api_token: &str,
+        config: HttpClientConfig,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        Self::with_base_url(api_token, CLOUDFLARE_API_URL, config)
     }
 
     /// Creates a new Cloudflare API client with a custom base URL.
@@ -430,13 +445,35 @@ impl Client {
     ///
     /// * `api_token` - Cloudflare API token (Bearer token)
     /// * `base_url` - Custom base URL for the API
+    /// * `config` - HTTP client configuration for network binding
     pub fn with_base_url(
         api_token: &str,
         base_url: &str,
+        config: HttpClientConfig,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let http_client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .build()?;
+        let mut builder = reqwest::Client::builder()
+            .timeout(config.timeout.unwrap_or(std::time::Duration::from_secs(30)));
+
+        if let Some(addr) = config.local_address {
+            builder = builder.local_address(addr);
+        }
+
+        #[cfg(any(
+            target_os = "android",
+            target_os = "fuchsia",
+            target_os = "linux",
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "watchos",
+            target_os = "illumos",
+            target_os = "solaris",
+        ))]
+        if let Some(ref iface) = config.interface {
+            builder = builder.interface(iface);
+        }
+
+        let http_client = builder.build()?;
 
         Ok(Self {
             http_client,

@@ -54,8 +54,8 @@ pub use api::{ApiError, Client, RecordConversionError, TencentError};
 
 use crate::{
     CreateRecord, CreateRecordError, CreateZone, CreateZoneError, DeleteRecord, DeleteRecordError,
-    DeleteZone, DeleteZoneError, Provider, Record, RecordData, RetrieveRecordError,
-    RetrieveZoneError, Zone,
+    DeleteZone, DeleteZoneError, HttpClientConfig, Provider, Record, RecordData,
+    RetrieveRecordError, RetrieveZoneError, Zone,
 };
 
 /// Supported DNS record types for Tencent Cloud DNSPod.
@@ -100,6 +100,35 @@ impl TencentProvider {
     /// ```
     pub fn new(secret_id: &str, secret_key: &str) -> Result<Self, Box<dyn StdErr + Send + Sync>> {
         let api_client = Client::new(secret_id, secret_key)?;
+        Ok(Self {
+            api_client: Arc::new(api_client),
+        })
+    }
+
+    /// Creates a new Tencent Cloud DNSPod provider with custom HTTP configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `secret_id` - Tencent Cloud SecretId
+    /// * `secret_key` - Tencent Cloud SecretKey
+    /// * `config` - HTTP client configuration for network binding
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use manydns::tencent::TencentProvider;
+    /// use manydns::HttpClientConfig;
+    ///
+    /// let config = HttpClientConfig::new()
+    ///     .local_address("192.168.1.100".parse().unwrap());
+    /// let provider = TencentProvider::with_config("secret_id", "secret_key", config).unwrap();
+    /// ```
+    pub fn with_config(
+        secret_id: &str,
+        secret_key: &str,
+        config: HttpClientConfig,
+    ) -> Result<Self, Box<dyn StdErr + Send + Sync>> {
+        let api_client = Client::with_config(secret_id, secret_key, config)?;
         Ok(Self {
             api_client: Arc::new(api_client),
         })

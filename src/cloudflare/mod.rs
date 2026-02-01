@@ -48,8 +48,8 @@ use std::sync::Arc;
 pub use api::{ApiError, Client, CloudflareError, DnsRecordWithZone, RecordConversionError};
 
 use crate::{
-    CreateRecord, CreateRecordError, DeleteRecord, DeleteRecordError, Provider, Record, RecordData,
-    RetrieveRecordError, RetrieveZoneError, Zone,
+    CreateRecord, CreateRecordError, DeleteRecord, DeleteRecordError, HttpClientConfig, Provider,
+    Record, RecordData, RetrieveRecordError, RetrieveZoneError, Zone,
 };
 
 /// Cloudflare DNS provider.
@@ -95,6 +95,36 @@ impl CloudflareProvider {
         })
     }
 
+    /// Creates a new Cloudflare provider with custom HTTP client configuration.
+    ///
+    /// This allows binding to a specific local IP address or network interface.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_token` - Cloudflare API token (Bearer token)
+    /// * `config` - HTTP client configuration
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use manydns::cloudflare::CloudflareProvider;
+    /// use manydns::HttpClientConfig;
+    ///
+    /// // Bind to a specific source IP
+    /// let config = HttpClientConfig::new()
+    ///     .local_address("192.168.1.100".parse().unwrap());
+    /// let provider = CloudflareProvider::with_config("your_api_token", config).unwrap();
+    /// ```
+    pub fn with_config(
+        api_token: &str,
+        config: HttpClientConfig,
+    ) -> Result<Self, Box<dyn StdErr + Send + Sync>> {
+        let api_client = Client::with_config(api_token, config)?;
+        Ok(Self {
+            api_client: Arc::new(api_client),
+        })
+    }
+
     /// Creates a new Cloudflare provider with a custom API base URL.
     ///
     /// This is primarily useful for testing with mock servers.
@@ -107,7 +137,7 @@ impl CloudflareProvider {
         api_token: &str,
         base_url: &str,
     ) -> Result<Self, Box<dyn StdErr + Send + Sync>> {
-        let api_client = Client::with_base_url(api_token, base_url)?;
+        let api_client = Client::with_base_url(api_token, base_url, HttpClientConfig::default())?;
         Ok(Self {
             api_client: Arc::new(api_client),
         })

@@ -34,6 +34,8 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::HttpClientConfig;
+
 const HETZNER_API_URL: &str = "https://api.hetzner.cloud/v1";
 
 /// Low-level Hetzner Cloud DNS API client.
@@ -53,7 +55,17 @@ impl Client {
     ///
     /// * `api_key` - Hetzner Cloud API token (Bearer token)
     pub fn new(api_key: &str) -> Result<Self, Box<dyn Error>> {
-        Self::with_base_url(api_key, HETZNER_API_URL)
+        Self::with_base_url_and_config(api_key, HETZNER_API_URL, HttpClientConfig::default())
+    }
+
+    /// Creates a new client with custom HTTP configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_key` - Hetzner Cloud API token
+    /// * `config` - HTTP client configuration for network binding
+    pub fn with_config(api_key: &str, config: HttpClientConfig) -> Result<Self, Box<dyn Error>> {
+        Self::with_base_url_and_config(api_key, HETZNER_API_URL, config)
     }
 
     /// Creates a new client with a custom base URL.
@@ -65,12 +77,52 @@ impl Client {
     /// * `api_key` - Hetzner Cloud API token
     /// * `base_url` - Base URL for API requests
     pub fn with_base_url(api_key: &str, base_url: &str) -> Result<Self, Box<dyn Error>> {
+        Self::with_base_url_and_config(api_key, base_url, HttpClientConfig::default())
+    }
+
+    /// Creates a new client with a custom base URL and HTTP configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_key` - Hetzner Cloud API token
+    /// * `base_url` - Base URL for API requests
+    /// * `config` - HTTP client configuration for network binding
+    pub fn with_base_url_and_config(
+        api_key: &str,
+        base_url: &str,
+        config: HttpClientConfig,
+    ) -> Result<Self, Box<dyn Error>> {
         let mut headers = HeaderMap::new();
         let mut auth_value = HeaderValue::from_str(&format!("Bearer {}", api_key))?;
         auth_value.set_sensitive(true);
         headers.append(AUTHORIZATION, auth_value);
 
-        let http_client = HttpClient::builder().default_headers(headers).build()?;
+        let mut builder = HttpClient::builder().default_headers(headers);
+
+        if let Some(timeout) = config.timeout {
+            builder = builder.timeout(timeout);
+        }
+
+        if let Some(addr) = config.local_address {
+            builder = builder.local_address(addr);
+        }
+
+        #[cfg(any(
+            target_os = "android",
+            target_os = "fuchsia",
+            target_os = "linux",
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "watchos",
+            target_os = "illumos",
+            target_os = "solaris",
+        ))]
+        if let Some(ref iface) = config.interface {
+            builder = builder.interface(iface);
+        }
+
+        let http_client = builder.build()?;
         Ok(Self {
             http_client,
             base_url: base_url.to_string(),

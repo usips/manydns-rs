@@ -70,8 +70,8 @@ use std::sync::Arc;
 
 use crate::{
     CreateRecord, CreateRecordError, CreateZone, CreateZoneError, DeleteRecord, DeleteRecordError,
-    DeleteZone, DeleteZoneError, Provider, Record, RecordData, RetrieveRecordError,
-    RetrieveZoneError, Zone,
+    DeleteZone, DeleteZoneError, HttpClientConfig, Provider, Record, RecordData,
+    RetrieveRecordError, RetrieveZoneError, Zone,
 };
 
 /// Supported record types for Hetzner Cloud DNS.
@@ -117,6 +117,30 @@ impl HetznerProvider {
         })
     }
 
+    /// Creates a new Hetzner Cloud DNS provider with custom HTTP configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `api_key` - Hetzner Cloud API token
+    /// * `config` - HTTP client configuration for network binding
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use manydns::hetzner::HetznerProvider;
+    /// use manydns::HttpClientConfig;
+    ///
+    /// let config = HttpClientConfig::new()
+    ///     .local_address("192.168.1.100".parse().unwrap());
+    /// let provider = HetznerProvider::with_config("your_api_token", config).unwrap();
+    /// ```
+    pub fn with_config(api_key: &str, config: HttpClientConfig) -> Result<Self, Box<dyn StdErr>> {
+        let api_client = api::Client::with_config(api_key, config)?;
+        Ok(Self {
+            api_client: Arc::new(api_client),
+        })
+    }
+
     /// Creates a new Hetzner Cloud DNS provider with a custom API base URL.
     ///
     /// This is primarily useful for testing with mock servers.
@@ -126,7 +150,8 @@ impl HetznerProvider {
     /// * `api_key` - Hetzner Cloud API token
     /// * `base_url` - Custom base URL for the API
     pub fn with_base_url(api_key: &str, base_url: &str) -> Result<Self, Box<dyn StdErr>> {
-        let api_client = api::Client::with_base_url(api_key, base_url)?;
+        let api_client =
+            api::Client::with_base_url_and_config(api_key, base_url, HttpClientConfig::default())?;
         Ok(Self {
             api_client: Arc::new(api_client),
         })

@@ -11,6 +11,7 @@ use quick_xml::Reader;
 use reqwest::Client as HttpClient;
 
 use crate::types::Environment;
+use crate::HttpClientConfig;
 
 /// Namecheap API endpoints.
 const PRODUCTION_API_URL: &str = "https://api.namecheap.com/xml.response";
@@ -170,9 +171,45 @@ pub struct Client {
 impl Client {
     /// Creates a new Namecheap API client.
     pub fn new(config: ClientConfig) -> Result<Self, Box<dyn Error + Send + Sync>> {
-        let http_client = HttpClient::builder()
-            .user_agent("manydns-rs/0.1.0")
-            .build()?;
+        Self::with_http_config(config, HttpClientConfig::default())
+    }
+
+    /// Creates a new Namecheap API client with custom HTTP configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Namecheap client configuration
+    /// * `http_config` - HTTP client configuration for network binding
+    pub fn with_http_config(
+        config: ClientConfig,
+        http_config: HttpClientConfig,
+    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let mut builder = HttpClient::builder().user_agent("manydns-rs/1.0.0");
+
+        if let Some(timeout) = http_config.timeout {
+            builder = builder.timeout(timeout);
+        }
+
+        if let Some(addr) = http_config.local_address {
+            builder = builder.local_address(addr);
+        }
+
+        #[cfg(any(
+            target_os = "android",
+            target_os = "fuchsia",
+            target_os = "linux",
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "watchos",
+            target_os = "illumos",
+            target_os = "solaris",
+        ))]
+        if let Some(ref iface) = http_config.interface {
+            builder = builder.interface(iface);
+        }
+
+        let http_client = builder.build()?;
 
         Ok(Self {
             http_client,

@@ -50,8 +50,8 @@ use std::{error::Error as StdErr, sync::Arc};
 
 use crate::{
     CreateRecord, CreateRecordError, CreateZone, CreateZoneError, DeleteRecord, DeleteRecordError,
-    DeleteZone, DeleteZoneError, Provider, Record, RecordData, RetrieveRecordError,
-    RetrieveZoneError, Zone,
+    DeleteZone, DeleteZoneError, HttpClientConfig, Provider, Record, RecordData,
+    RetrieveRecordError, RetrieveZoneError, Zone,
 };
 
 pub mod api;
@@ -104,6 +104,36 @@ impl DnspodProvider {
     /// ```
     pub fn new(login_token: &str, config: &api::ClientConfig) -> Result<Self, Box<dyn StdErr>> {
         let api_client = api::Client::new(login_token, config)?;
+        Ok(Self {
+            api_client: Arc::new(api_client),
+        })
+    }
+
+    /// Creates a new DNSPod provider with custom HTTP client configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `login_token` - The DNSPod API token in format `{SecretID},{SecretKey}`
+    /// * `client_config` - Client configuration with User-Agent details
+    /// * `http_config` - HTTP client configuration for network binding
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use manydns::dnspod::{DnspodProvider, ClientConfig};
+    /// use manydns::HttpClientConfig;
+    ///
+    /// let client_config = ClientConfig::new("My DDNS App", "1.0.0", "me@example.com");
+    /// let http_config = HttpClientConfig::new()
+    ///     .local_address("192.168.1.100".parse().unwrap());
+    /// let provider = DnspodProvider::with_http_config("secret_id,secret_key", &client_config, http_config).unwrap();
+    /// ```
+    pub fn with_http_config(
+        login_token: &str,
+        client_config: &api::ClientConfig,
+        http_config: HttpClientConfig,
+    ) -> Result<Self, Box<dyn StdErr>> {
+        let api_client = api::Client::with_http_config(login_token, client_config, http_config)?;
         Ok(Self {
             api_client: Arc::new(api_client),
         })

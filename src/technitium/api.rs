@@ -7,6 +7,8 @@
 use reqwest::Client as HttpClient;
 use serde::Deserialize;
 
+use crate::HttpClientConfig;
+
 /// The default port for Technitium DNS Server web interface.
 pub const DEFAULT_PORT: u16 = 5380;
 
@@ -45,7 +47,47 @@ impl Client {
     /// - Logging in via `/api/user/login`
     /// - Creating a non-expiring API token via `/api/user/createToken`
     pub fn new(base_url: &str, token: &str) -> Result<Self, reqwest::Error> {
-        let http_client = HttpClient::builder().build()?;
+        Self::with_config(base_url, token, HttpClientConfig::default())
+    }
+
+    /// Creates a new API client with custom HTTP configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `base_url` - The base URL of the Technitium DNS Server
+    /// * `token` - The API token for authentication
+    /// * `config` - HTTP client configuration for network binding
+    pub fn with_config(
+        base_url: &str,
+        token: &str,
+        config: HttpClientConfig,
+    ) -> Result<Self, reqwest::Error> {
+        let mut builder = HttpClient::builder();
+
+        if let Some(timeout) = config.timeout {
+            builder = builder.timeout(timeout);
+        }
+
+        if let Some(addr) = config.local_address {
+            builder = builder.local_address(addr);
+        }
+
+        #[cfg(any(
+            target_os = "android",
+            target_os = "fuchsia",
+            target_os = "linux",
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "watchos",
+            target_os = "illumos",
+            target_os = "solaris",
+        ))]
+        if let Some(ref iface) = config.interface {
+            builder = builder.interface(iface);
+        }
+
+        let http_client = builder.build()?;
         Ok(Self {
             http_client,
             base_url: base_url.trim_end_matches('/').to_string(),

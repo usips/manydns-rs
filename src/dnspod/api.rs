@@ -6,6 +6,8 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::HttpClientConfig;
+
 const DNSPOD_API_URL: &str = "https://api.dnspod.com";
 
 /// Helper module for deserializing fields that can be either strings or integers.
@@ -143,6 +145,21 @@ impl Client {
     ///
     /// See: <https://docs.dnspod.com/api/api-development/>
     pub fn new(login_token: &str, config: &ClientConfig) -> Result<Self, Box<dyn Error>> {
+        Self::with_http_config(login_token, config, HttpClientConfig::default())
+    }
+
+    /// Creates a new DNSPod API client with custom HTTP configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `login_token` - The DNSPod API token
+    /// * `config` - Client configuration including User-Agent details
+    /// * `http_config` - HTTP client configuration for network binding
+    pub fn with_http_config(
+        login_token: &str,
+        config: &ClientConfig,
+        http_config: HttpClientConfig,
+    ) -> Result<Self, Box<dyn Error>> {
         let user_agent = config.user_agent();
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -156,7 +173,32 @@ impl Client {
             HeaderValue::from_str(&user_agent).map_err(|e| Box::new(e) as Box<dyn Error>)?,
         );
 
-        let http_client = HttpClient::builder().default_headers(headers).build()?;
+        let mut builder = HttpClient::builder().default_headers(headers);
+
+        if let Some(timeout) = http_config.timeout {
+            builder = builder.timeout(timeout);
+        }
+
+        if let Some(addr) = http_config.local_address {
+            builder = builder.local_address(addr);
+        }
+
+        #[cfg(any(
+            target_os = "android",
+            target_os = "fuchsia",
+            target_os = "linux",
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "tvos",
+            target_os = "watchos",
+            target_os = "illumos",
+            target_os = "solaris",
+        ))]
+        if let Some(ref iface) = http_config.interface {
+            builder = builder.interface(iface);
+        }
+
+        let http_client = builder.build()?;
         Ok(Self {
             http_client,
             login_token: login_token.to_string(),
