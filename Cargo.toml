@@ -53,6 +53,7 @@ cloudflare = ["serde", "dep:reqwest", "serde_json"]
 hetzner = ["serde", "dep:reqwest"]
 technitium-dns = ["serde", "dep:reqwest", "serde_json"]
 namecheap = ["serde", "dep:reqwest", "quick-xml"]
+namecrane = ["serde", "dep:reqwest", "serde_json"]
 
 default-tls = ["reqwest?/default-tls"]
 rustls-tls = ["reqwest?/rustls"]

@@ -63,6 +63,7 @@ Enable providers via feature flags:
 | [Tencent Cloud](https://cloud.tencent.com/) | `tencent` | No |
 | [Technitium](https://technitium.com/dns/) | `technitium-dns` | Yes |
 | [Namecheap](https://www.namecheap.com/) | `namecheap` | No |
+| [Namecrane](https://namecrane.com/) | `namecrane` | No |
 
 ## Core Traits
 

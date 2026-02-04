@@ -154,6 +154,9 @@ pub mod technitium;
 #[cfg(feature = "namecheap")]
 pub mod namecheap;
 
+#[cfg(feature = "namecrane")]
+pub mod namecrane;
+
 /// Represents a DNS zone provider.
 ///
 /// Providers implement [`Zone`] management, which in turn implement [`Record`] management.

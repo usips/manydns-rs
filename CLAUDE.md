@@ -70,7 +70,7 @@ Providers wrap their API client in `Arc` for shared ownership across zones.
 ### Feature Flags
 
 Providers are feature-gated:
-- `cloudflare`, `hetzner`, `dnspod`, `tencent`, `technitium-dns`, `namecheap`
+- `cloudflare`, `hetzner`, `dnspod`, `tencent`, `technitium-dns`, `namecheap`, `namecrane`
 
 TLS backends (for reqwest):
 - `default-tls` (default), `rustls-tls`, `native-tls`, `native-tls-vendored`
