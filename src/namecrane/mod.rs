@@ -4,9 +4,9 @@
 //!
 //! # Important Notes
 //!
-//! - **Single-Zone API**: Each API key manages exactly one domain.
+//! - **Domain-Based Access**: Specify the domain when creating the provider.
 //! - **No Zone Listing**: Use [`Provider::get_zone`] with the domain name directly.
-//! - **Record Identification**: Records use synthesized IDs (name:type:content_hash).
+//! - **Record IDs**: Records have stable UUIDs assigned by the API.
 //!
 //! # Environments
 //!
@@ -20,7 +20,7 @@
 //! use manydns::{Provider, Zone};
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-//! let config = ClientConfig::sandbox("your-64-char-api-key", "example.org");
+//! let config = ClientConfig::sandbox("your-api-key", "example.org");
 //! let provider = NamecraneProvider::new(config)?;
 //!
 //! let zone = provider.get_zone("example.org").await?;
@@ -150,6 +150,8 @@ impl Provider for NamecraneProvider {
         // Verify access by attempting to list records
         zone.api_client.list(None).await.map_err(|e| match e {
             NamecraneError::Unauthorized => RetrieveZoneError::Unauthorized,
+            NamecraneError::DomainNotFound => RetrieveZoneError::NotFound,
+            NamecraneError::Forbidden(_) => RetrieveZoneError::Unauthorized,
             other => RetrieveZoneError::Custom(other),
         })?;
 
@@ -159,8 +161,8 @@ impl Provider for NamecraneProvider {
     async fn list_zones(
         &self,
     ) -> Result<Vec<Self::Zone>, RetrieveZoneError<Self::CustomRetrieveError>> {
-        // Namecrane API keys are per-domain; we can't list zones.
-        // Return empty list (same pattern as Namecheap).
+        // Namecrane API doesn't support listing zones; return empty.
+        // Use get_zone() with the domain name directly.
         Ok(vec![])
     }
 }
@@ -181,6 +183,7 @@ impl Zone for NamecraneZone {
     ) -> Result<Vec<Record>, RetrieveRecordError<Self::CustomRetrieveError>> {
         let api_records = self.api_client.list(None).await.map_err(|e| match e {
             NamecraneError::Unauthorized => RetrieveRecordError::Unauthorized,
+            NamecraneError::Forbidden(_) => RetrieveRecordError::Unauthorized,
             other => RetrieveRecordError::Custom(other),
         })?;
 
@@ -196,30 +199,14 @@ impl Zone for NamecraneZone {
         &self,
         record_id: &str,
     ) -> Result<Record, RetrieveRecordError<Self::CustomRetrieveError>> {
-        // Parse the synthesized ID to find the record
-        let (name, record_type, content_prefix) = parse_record_id(record_id).ok_or_else(|| {
-            RetrieveRecordError::Custom(NamecraneError::Parse(format!(
-                "Invalid record ID format: {}",
-                record_id
-            )))
+        let api_record = self.api_client.get(record_id).await.map_err(|e| match e {
+            NamecraneError::Unauthorized => RetrieveRecordError::Unauthorized,
+            NamecraneError::Forbidden(_) => RetrieveRecordError::Unauthorized,
+            NamecraneError::RecordNotFound => RetrieveRecordError::NotFound,
+            other => RetrieveRecordError::Custom(other),
         })?;
 
-        // Filter by type for efficiency
-        let api_records = self
-            .api_client
-            .list(Some(&record_type))
-            .await
-            .map_err(|e| match e {
-                NamecraneError::Unauthorized => RetrieveRecordError::Unauthorized,
-                other => RetrieveRecordError::Custom(other),
-            })?;
-
-        // Find matching record by content hash prefix
-        api_records
-            .into_iter()
-            .find(|r| r.name == name && content_hash(&r.content).starts_with(&content_prefix))
-            .map(|r| api_record_to_record(r, &self.domain))
-            .ok_or(RetrieveRecordError::NotFound)
+        Ok(api_record_to_record(api_record, &self.domain))
     }
 }
 
@@ -234,24 +221,18 @@ impl CreateRecord for NamecraneZone {
     ) -> Result<Record, CreateRecordError<Self::CustomCreateError>> {
         let record_type = data.get_type();
         let content = data.get_api_value();
-        let priority = match data {
-            RecordData::MX { priority, .. } => Some(*priority),
-            RecordData::SRV { priority, .. } => Some(*priority),
-            _ => None,
-        };
 
-        self.api_client
-            .create(host, record_type, &content, Some(ttl), priority)
+        let record_id = self
+            .api_client
+            .create(host, record_type, &content, Some(ttl))
             .await
             .map_err(|e| match e {
                 NamecraneError::Unauthorized => CreateRecordError::Unauthorized,
-                NamecraneError::RecordTypeNotAllowed(t) => {
-                    CreateRecordError::Custom(NamecraneError::RecordTypeNotAllowed(t))
-                }
+                NamecraneError::Forbidden(_) => CreateRecordError::Unauthorized,
                 other => CreateRecordError::Custom(other),
             })?;
 
-        // Return the created record with synthesized ID
+        // Build the full host name
         let full_host = if host == "@" {
             self.domain.clone()
         } else {
@@ -259,7 +240,7 @@ impl CreateRecord for NamecraneZone {
         };
 
         Ok(Record {
-            id: synthesize_record_id(host, record_type, &content),
+            id: record_id,
             host: full_host,
             data: data.clone(),
             ttl,
@@ -274,71 +255,14 @@ impl DeleteRecord for NamecraneZone {
         &self,
         record_id: &str,
     ) -> Result<(), DeleteRecordError<Self::CustomDeleteError>> {
-        // First, fetch the record to get its full content
-        let record = self.get_record(record_id).await.map_err(|e| match e {
-            RetrieveRecordError::NotFound => DeleteRecordError::NotFound,
-            RetrieveRecordError::Unauthorized => DeleteRecordError::Unauthorized,
-            RetrieveRecordError::Custom(c) => DeleteRecordError::Custom(c),
+        self.api_client.delete(record_id).await.map_err(|e| match e {
+            NamecraneError::Unauthorized => DeleteRecordError::Unauthorized,
+            NamecraneError::Forbidden(_) => DeleteRecordError::Unauthorized,
+            NamecraneError::RecordNotFound => DeleteRecordError::NotFound,
+            other => DeleteRecordError::Custom(other),
         })?;
 
-        // Extract the relative host name
-        let relative_host = if record.host == self.domain {
-            "@".to_string()
-        } else {
-            record
-                .host
-                .strip_suffix(&format!(".{}", self.domain))
-                .unwrap_or(&record.host)
-                .to_string()
-        };
-
-        self.api_client
-            .delete(
-                &relative_host,
-                record.data.get_type(),
-                &record.data.get_api_value(),
-            )
-            .await
-            .map_err(|e| match e {
-                NamecraneError::Unauthorized => DeleteRecordError::Unauthorized,
-                NamecraneError::RecordNotFound => DeleteRecordError::NotFound,
-                other => DeleteRecordError::Custom(other),
-            })?;
-
         Ok(())
-    }
-}
-
-/// Synthesizes a record ID from its components.
-///
-/// Format: `name:type:content_hash` where content_hash is the first 8 chars of a hash.
-fn synthesize_record_id(name: &str, record_type: &str, content: &str) -> String {
-    let hash = content_hash(content);
-    format!("{}:{}:{}", name, record_type, hash)
-}
-
-/// Creates a short hash of content for ID synthesis.
-fn content_hash(content: &str) -> String {
-    // Simple hash: sum of bytes mod 2^32, formatted as hex
-    let hash: u32 = content
-        .bytes()
-        .fold(0u32, |acc, b| acc.wrapping_add(b as u32).wrapping_mul(31));
-    format!("{:08x}", hash)
-}
-
-/// Parses a synthesized record ID back into components.
-///
-/// Returns (name, record_type, content_hash_prefix).
-fn parse_record_id(id: &str) -> Option<(String, String, String)> {
-    let parts: Vec<&str> = id.splitn(3, ':').collect();
-    if parts.len() == 3 {
-        Some((
-            parts[0].to_string(),
-            parts[1].to_string(),
-            parts[2].to_string(),
-        ))
-    } else {
-        None
     }
 }
 
@@ -350,21 +274,40 @@ fn api_record_to_record(api_record: ApiRecord, domain: &str) -> Record {
         format!("{}.{}", api_record.name, domain)
     };
 
+    // Parse MX records specially (content format: "priority server")
     let data = match api_record.record_type.as_str() {
-        "MX" => RecordData::MX {
-            priority: api_record.priority.unwrap_or(10),
-            mail_server: api_record.content.clone(),
-        },
+        "MX" => {
+            let parts: Vec<&str> = api_record.content.splitn(2, ' ').collect();
+            if parts.len() == 2 {
+                if let Ok(priority) = parts[0].parse::<u16>() {
+                    RecordData::MX {
+                        priority,
+                        mail_server: parts[1].to_string(),
+                    }
+                } else {
+                    RecordData::from_raw(&api_record.record_type, &api_record.content)
+                }
+            } else {
+                RecordData::from_raw(&api_record.record_type, &api_record.content)
+            }
+        }
         "SRV" => {
-            // SRV content format: "weight port target"
-            // Priority is separate field
-            let parts: Vec<&str> = api_record.content.splitn(3, ' ').collect();
-            if parts.len() >= 3 {
-                RecordData::SRV {
-                    priority: api_record.priority.unwrap_or(0),
-                    weight: parts[0].parse().unwrap_or(0),
-                    port: parts[1].parse().unwrap_or(0),
-                    target: parts[2].to_string(),
+            // SRV content format: "priority weight port target"
+            let parts: Vec<&str> = api_record.content.splitn(4, ' ').collect();
+            if parts.len() == 4 {
+                if let (Ok(priority), Ok(weight), Ok(port)) = (
+                    parts[0].parse::<u16>(),
+                    parts[1].parse::<u16>(),
+                    parts[2].parse::<u16>(),
+                ) {
+                    RecordData::SRV {
+                        priority,
+                        weight,
+                        port,
+                        target: parts[3].to_string(),
+                    }
+                } else {
+                    RecordData::from_raw(&api_record.record_type, &api_record.content)
                 }
             } else {
                 RecordData::from_raw(&api_record.record_type, &api_record.content)
@@ -374,11 +317,7 @@ fn api_record_to_record(api_record: ApiRecord, domain: &str) -> Record {
     };
 
     Record {
-        id: synthesize_record_id(
-            &api_record.name,
-            &api_record.record_type,
-            &api_record.content,
-        ),
+        id: api_record.id,
         host,
         data,
         ttl: api_record.ttl,
@@ -390,53 +329,63 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_synthesize_and_parse_record_id() {
-        let id = synthesize_record_id("www", "A", "192.168.1.1");
-        let (name, rtype, hash) = parse_record_id(&id).unwrap();
-        assert_eq!(name, "www");
-        assert_eq!(rtype, "A");
-        assert_eq!(hash.len(), 8);
-    }
-
-    #[test]
-    fn test_content_hash_consistency() {
-        let hash1 = content_hash("192.168.1.1");
-        let hash2 = content_hash("192.168.1.1");
-        assert_eq!(hash1, hash2);
-
-        let hash3 = content_hash("192.168.1.2");
-        assert_ne!(hash1, hash3);
-    }
-
-    #[test]
-    fn test_parse_invalid_record_id() {
-        assert!(parse_record_id("invalid").is_none());
-        assert!(parse_record_id("only:two").is_none());
-    }
-
-    #[test]
     fn test_api_record_to_record_apex() {
         let api = ApiRecord {
+            id: "550e8400-e29b-41d4-a716-446655440000".to_string(),
             name: "@".to_string(),
             record_type: "A".to_string(),
             content: "1.2.3.4".to_string(),
             ttl: 300,
-            priority: None,
         };
         let record = api_record_to_record(api, "example.com");
         assert_eq!(record.host, "example.com");
+        assert_eq!(record.id, "550e8400-e29b-41d4-a716-446655440000");
     }
 
     #[test]
     fn test_api_record_to_record_subdomain() {
         let api = ApiRecord {
+            id: "6ba7b810-9dad-11d1-80b4-00c04fd430c8".to_string(),
             name: "www".to_string(),
             record_type: "A".to_string(),
             content: "1.2.3.4".to_string(),
             ttl: 300,
-            priority: None,
         };
         let record = api_record_to_record(api, "example.com");
         assert_eq!(record.host, "www.example.com");
+    }
+
+    #[test]
+    fn test_api_record_to_record_mx() {
+        let api = ApiRecord {
+            id: "f47ac10b-58cc-4372-a567-0e02b2c3d479".to_string(),
+            name: "@".to_string(),
+            record_type: "MX".to_string(),
+            content: "10 mail.example.com.".to_string(),
+            ttl: 3600,
+        };
+        let record = api_record_to_record(api, "example.com");
+        assert!(matches!(record.data, RecordData::MX { priority: 10, .. }));
+    }
+
+    #[test]
+    fn test_api_record_to_record_srv() {
+        let api = ApiRecord {
+            id: "a1b2c3d4-5678-90ab-cdef-1234567890ab".to_string(),
+            name: "_sip._tcp".to_string(),
+            record_type: "SRV".to_string(),
+            content: "10 5 5060 sipserver.example.com.".to_string(),
+            ttl: 3600,
+        };
+        let record = api_record_to_record(api, "example.com");
+        assert!(matches!(
+            record.data,
+            RecordData::SRV {
+                priority: 10,
+                weight: 5,
+                port: 5060,
+                ..
+            }
+        ));
     }
 }
