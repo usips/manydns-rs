@@ -220,7 +220,17 @@ impl CreateRecord for NamecraneZone {
         ttl: u64,
     ) -> Result<Record, CreateRecordError<Self::CustomCreateError>> {
         let record_type = data.get_type();
-        let content = data.get_api_value();
+
+        // Namecrane expects MX/SRV content to include priority
+        let content = match data {
+            RecordData::MX { priority, mail_server } => {
+                format!("{} {}", priority, mail_server)
+            }
+            RecordData::SRV { priority, weight, port, target } => {
+                format!("{} {} {} {}", priority, weight, port, target)
+            }
+            _ => data.get_api_value(),
+        };
 
         let record_id = self
             .api_client
