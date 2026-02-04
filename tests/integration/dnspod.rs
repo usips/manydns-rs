@@ -84,12 +84,7 @@ async fn get_test_zone(config: &TestConfig) -> impl CreateRecord + DeleteRecord 
     zones
         .into_iter()
         .find(|z| z.domain() == config.domain)
-        .unwrap_or_else(|| {
-            panic!(
-                "Test domain '{}' not found in account",
-                config.domain
-            )
-        })
+        .unwrap_or_else(|| panic!("Test domain '{}' not found in account", config.domain))
 }
 
 /// Clean up any existing test records for a given host.

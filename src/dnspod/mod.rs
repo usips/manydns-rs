@@ -170,7 +170,9 @@ impl Provider for DnspodProvider {
         // domain is guaranteed to be Some after successful API call
         Ok(DnspodZone {
             api_client: self.api_client.clone(),
-            repr: response.domain.expect("domain should be present after success check"),
+            repr: response
+                .domain
+                .expect("domain should be present after success check"),
         })
     }
 
