@@ -151,6 +151,67 @@ pub mod cloudflare {
     }
 }
 
+/// Namecheap-specific mock helpers.
+#[cfg(feature = "namecheap")]
+pub mod namecheap {
+    /// Build a successful getHosts XML response.
+    pub fn mock_get_hosts_response(records: &[(&str, &str, &str, &str, u64)]) -> String {
+        let mut hosts = String::new();
+        for (i, (name, record_type, address, host_id, ttl)) in records.iter().enumerate() {
+            hosts.push_str(&format!(
+                r#"      <Host HostId="{}" Name="{}" Type="{}" Address="{}" MXPref="10" TTL="{}" />"#,
+                if host_id.is_empty() {
+                    format!("{}", i + 1)
+                } else {
+                    host_id.to_string()
+                },
+                name,
+                record_type,
+                address,
+                ttl,
+            ));
+            hosts.push('\n');
+        }
+        format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<ApiResponse xmlns="http://api.namecheap.com/xml.response" Status="OK">
+  <Errors />
+  <RequestedCommand>namecheap.domains.dns.getHosts</RequestedCommand>
+  <CommandResponse Type="namecheap.domains.dns.getHosts">
+    <DomainDNSGetHostsResult Domain="example.com" IsUsingOurDNS="true">
+{}    </DomainDNSGetHostsResult>
+  </CommandResponse>
+</ApiResponse>"#,
+            hosts
+        )
+    }
+
+    /// Build a successful setHosts XML response.
+    pub fn mock_set_hosts_response() -> String {
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<ApiResponse xmlns="http://api.namecheap.com/xml.response" Status="OK">
+  <Errors />
+  <RequestedCommand>namecheap.domains.dns.setHosts</RequestedCommand>
+  <CommandResponse Type="namecheap.domains.dns.setHosts">
+    <DomainDNSSetHostsResult Domain="example.com" IsSuccess="true" />
+  </CommandResponse>
+</ApiResponse>"#
+            .to_string()
+    }
+
+    /// Build a rate-limited error XML response.
+    pub fn mock_rate_limited_response() -> String {
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<ApiResponse xmlns="http://api.namecheap.com/xml.response" Status="ERROR">
+  <Errors>
+    <Error Number="500000">Too many requests. Please try again later.</Error>
+  </Errors>
+  <RequestedCommand>namecheap.domains.dns.getHosts</RequestedCommand>
+</ApiResponse>"#
+            .to_string()
+    }
+}
+
 /// Hetzner-specific mock helpers.
 #[cfg(feature = "hetzner")]
 pub mod hetzner {

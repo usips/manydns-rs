@@ -8,3 +8,6 @@ pub mod cloudflare;
 
 #[cfg(feature = "hetzner")]
 pub mod hetzner;
+
+#[cfg(feature = "namecheap")]
+pub mod namecheap;

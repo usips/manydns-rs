@@ -118,12 +118,15 @@ impl NamecheapZone {
     }
 
     /// Fetches all current host records from the API.
-    async fn fetch_records(&self) -> Result<Vec<HostRecord>, NamecheapError> {
+    pub async fn fetch_records(&self) -> Result<Vec<HostRecord>, NamecheapError> {
         self.api_client.get_hosts(&self.sld, &self.tld).await
     }
 
-    /// Saves all host records to the API.
-    async fn save_records(&self, records: &[HostRecord]) -> Result<(), NamecheapError> {
+    /// Saves all host records to the API, replacing all existing records.
+    ///
+    /// **Important**: This replaces ALL records in the zone. Include all records
+    /// you want to keep (MX, TXT, CNAME, etc.) alongside any changes.
+    pub async fn save_records(&self, records: &[HostRecord]) -> Result<(), NamecheapError> {
         self.api_client
             .set_hosts(&self.sld, &self.tld, records)
             .await
@@ -433,6 +436,8 @@ impl DeleteRecord for NamecheapZone {
             .await
             .map_err(DeleteRecordError::Custom)?;
 
+        let original_count = records.len();
+
         // Filter out the record to delete
         let remaining: Vec<_> = records
             .into_iter()
@@ -440,11 +445,6 @@ impl DeleteRecord for NamecheapZone {
             .collect();
 
         // If count is the same, record wasn't found
-        let original_count = self
-            .fetch_records()
-            .await
-            .map_err(DeleteRecordError::Custom)?
-            .len();
         if remaining.len() == original_count {
             return Err(DeleteRecordError::NotFound);
         }

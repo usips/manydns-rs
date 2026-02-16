@@ -47,6 +47,8 @@ pub enum NamecheapError {
     DomainNotFound,
     /// Unauthorized access.
     Unauthorized,
+    /// Rate limited by the API.
+    RateLimited,
 }
 
 impl fmt::Display for NamecheapError {
@@ -57,6 +59,7 @@ impl fmt::Display for NamecheapError {
             NamecheapError::Parse(msg) => write!(f, "XML parse error: {}", msg),
             NamecheapError::DomainNotFound => write!(f, "Domain not found"),
             NamecheapError::Unauthorized => write!(f, "Unauthorized"),
+            NamecheapError::RateLimited => write!(f, "Rate limited"),
         }
     }
 }
@@ -333,6 +336,9 @@ impl Client {
                     }
                     "2019166" | "2016166" => {
                         return Err(NamecheapError::DomainNotFound);
+                    }
+                    "500000" => {
+                        return Err(NamecheapError::RateLimited);
                     }
                     _ => {}
                 }
